@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Safety Performance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #080b0f;
+  --bg2:     #0e1319;
+  --bg3:     #141a22;
+  --bg4:     #1b2230;
+  --bg5:     #202838;
+  --border:  rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.11);
+  --text:    #dce6f0;
+  --text2:   #7a8ea4;
+  --text3:   #4e6070;
+  --accent:  #3b82f6;
+  --accent2: #1d4ed8;
+  --red:     #e8533a;
+  --amber:   #e8a230;
+  --green:   #22c55e;
+  --blue:    #3b82f6;
+  --purple:  #a855f7;
+  --teal:    #14b8a6;
+  --orange:  #f07a3a;
+  --sidebar: 252px;
+  --radius:  7px;
+  --radius-lg: 11px;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* TOPBAR */
+.topbar {
+  display: flex; align-items: center; gap: 14px; padding: 0 22px;
+  height: 50px; background: var(--bg2); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 0 var(--border), 0 4px 24px rgba(0,0,0,0.4);
+}
+.topbar-logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, var(--red) 0%, #c0392b 100%);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 1px rgba(232,83,58,0.4), 0 2px 8px rgba(232,83,58,0.25);
+}
+.logo-mark svg { width: 16px; height: 16px; fill: #fff; }
+.logo-text { font-size: 14px; font-weight: 600; letter-spacing: -0.4px; color: var(--text); }
+.logo-sep { width: 1px; height: 14px; background: var(--border2); }
+.logo-sub { font-size: 10px; color: var(--text3); letter-spacing: 0.07em; text-transform: uppercase; font-weight: 500; }
+.topbar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 11px; color: var(--text2); letter-spacing: 0.01em; }
+.live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 6px var(--green);} 50%{opacity:0.5;box-shadow:0 0 2px var(--green);} }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.export-btn {
+  background: transparent; border: 1px solid var(--border2); color: var(--text2);
+  padding: 5px 11px; border-radius: var(--radius); font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; gap: 5px; font-family: inherit;
+  transition: all 0.15s;
+}
+.export-btn:hover { background: var(--bg3); border-color: var(--accent); color: var(--accent); }
+.period-badge {
+  background: var(--bg3); border: 1px solid var(--border); padding: 4px 11px;
+  border-radius: 20px; font-size: 11px; color: var(--text2); font-family: var(--mono);
+  letter-spacing: 0.01em;
+}
+
+/* LAYOUT */
+.app-body { display: flex; flex: 1; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar); background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
+}
+.sidebar::-webkit-scrollbar { width: 0; }
+.sidebar-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.sidebar-section:last-child { border-bottom: none; }
+.filter-title {
+  font-size: 9.5px; font-weight: 600; color: var(--text3); text-transform: uppercase;
+  letter-spacing: 0.1em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+}
+.filter-title svg { width: 11px; height: 11px; opacity: 0.5; }
+.filter-group { margin-bottom: 10px; }
+.filter-group:last-child { margin-bottom: 0; }
+.filter-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+select, input[type="date"] {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); padding: 6px 9px; border-radius: var(--radius);
+  font-size: 12px; outline: none; appearance: none; -webkit-appearance: none;
+  font-family: inherit; cursor: pointer; transition: border-color 0.15s;
+}
+select:focus, input[type="date"]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+select:hover, input[type="date"]:hover { border-color: var(--border2); }
+.checkbox-group { display: flex; flex-direction: column; gap: 7px; }
+.checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.checkbox-row input[type="checkbox"] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; border-radius: 3px; }
+.checkbox-row label { font-size: 12px; color: var(--text); cursor: pointer; flex: 1; font-weight: 400; }
+.cb-count {
+  font-size: 10px; background: var(--bg4); border-radius: 9px;
+  padding: 1px 6px; color: var(--text2); font-family: var(--mono); font-size: 9.5px;
+}
+.nature-section { overflow: hidden; transition: max-height 0.3s; }
+.nature-section.collapsed { max-height: 0 !important; }
+.apply-btn {
+  width: 100%; background: var(--accent); color: #fff; border: none;
+  padding: 8px; border-radius: var(--radius); font-size: 12px; font-weight: 600;
+  cursor: pointer; margin-top: 6px; font-family: inherit;
+  transition: filter 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+}
+.apply-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 16px rgba(59,130,246,0.4); }
+.reset-btn {
+  width: 100%; background: transparent; color: var(--text2); border: 1px solid var(--border);
+  padding: 6px; border-radius: var(--radius); font-size: 11px; cursor: pointer;
+  margin-top: 4px; font-family: inherit; transition: all 0.15s;
+}
+.reset-btn:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+.active-filters {
+  padding: 8px 16px; background: var(--bg3); border-bottom: 1px solid var(--border);
+  display: flex; flex-wrap: wrap; gap: 5px; min-height: 34px; align-items: center;
+}
+.filter-chip {
+  background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25);
+  color: var(--blue); font-size: 10px; padding: 2px 8px; border-radius: 9px;
+  display: flex; align-items: center; gap: 4px; font-weight: 500;
+}
+.filter-chip .rm { cursor: pointer; opacity: 0.7; font-size: 11px; }
+.filter-chip .rm:hover { opacity: 1; }
+
+/* MAIN AREA */
+.main { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+/* TABS */
+.tab-bar {
+  display: flex; gap: 1px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 3px; width: fit-content;
+}
+.tab-btn {
+  padding: 5px 14px; border-radius: 5px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: none; background: transparent; color: var(--text2);
+  transition: all 0.15s; font-family: inherit; letter-spacing: 0.01em;
+}
+.tab-btn.active { background: var(--bg4); color: var(--text); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); }
+.tab-btn:hover:not(.active) { color: var(--text); background: var(--bg3); }
+.tab-panel { display: none; flex-direction: column; gap: 14px; }
+.tab-panel.active { display: flex; }
+
+/* KPI GRID */
+.kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.kpi-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 14px 14px 12px; position: relative; overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.kpi-card:hover { border-color: var(--border2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+/* Left severity bar (signature element — replaces generic top border) */
+.kpi-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 2px 0 0 2px;
+}
+.kpi-fatal::before  { background: var(--red); box-shadow: 2px 0 12px rgba(232,83,58,0.3); }
+.kpi-lti::before    { background: var(--amber); box-shadow: 2px 0 12px rgba(232,162,48,0.3); }
+.kpi-nlti::before   { background: var(--orange); box-shadow: 2px 0 12px rgba(240,122,58,0.3); }
+.kpi-nm::before     { background: var(--blue); box-shadow: 2px 0 12px rgba(59,130,246,0.3); }
+.kpi-pd::before     { background: var(--purple); box-shadow: 2px 0 12px rgba(168,85,247,0.3); }
+.kpi-hrs::before    { background: var(--teal); box-shadow: 2px 0 12px rgba(20,184,166,0.3); }
+
+.kpi-icon {
+  width: 26px; height: 26px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 10px; font-size: 13px;
+}
+.kpi-label { font-size: 9.5px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+.kpi-value { font-family: var(--mono); font-size: 30px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; }
+.kpi-sub { font-size: 10px; color: var(--text2); margin-top: 6px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.01em; }
+.kpi-trend { font-size: 10px; margin-top: 5px; display: flex; align-items: center; gap: 3px; }
+.trend-up { color: var(--red); } .trend-down { color: var(--green); } .trend-flat { color: var(--text3); }
+
+/* PANELS */
+.panel {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px;
+}
+.panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.panel-title { font-size: 12.5px; font-weight: 600; color: var(--text); flex: 1; letter-spacing: -0.1px; }
+.panel-badge {
+  font-size: 9.5px; background: var(--bg3); border: 1px solid var(--border);
+  padding: 2px 8px; border-radius: 9px; color: var(--text2); letter-spacing: 0.02em;
+}
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.row3 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px; }
+.row4 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+
+.chart-wrap { position: relative; width: 100%; }
+.h200 { height: 200px; }
+.h220 { height: 220px; }
+.h250 { height: 250px; }
+.h280 { height: 280px; }
+.h320 { height: 320px; }
+
+/* LEGEND */
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+/* ALERTS */
+.alert-list { display: flex; flex-direction: column; gap: 7px; }
+.alert-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 12px; border-radius: var(--radius);
+  font-size: 11.5px; line-height: 1.55;
+}
+.alert-red  { background: rgba(232,83,58,0.07); border: 1px solid rgba(232,83,58,0.2); }
+.alert-amber{ background: rgba(232,162,48,0.07); border: 1px solid rgba(232,162,48,0.2); }
+.alert-blue { background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.2); }
+.alert-green{ background: rgba(34,197,94,0.07);  border: 1px solid rgba(34,197,94,0.2); }
+.alert-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.ai-r { color: #f08070; } .ai-a { color: #e8be60; } .ai-b { color: #70a8f0; } .ai-g { color: #60d890; }
+
+/* ROOT CAUSE */
+.rc-input-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.rc-input {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 12px; border-radius: var(--radius); font-size: 12px; outline: none;
+  font-family: inherit; transition: border-color 0.15s;
+}
+.rc-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+.rc-btn {
+  background: var(--accent); color: #fff; border: none; padding: 8px 14px;
+  border-radius: var(--radius); font-size: 12px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; font-family: inherit;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.3); transition: filter 0.15s;
+}
+.rc-btn:hover { filter: brightness(1.1); }
+.cause-bars { display: flex; flex-direction: column; gap: 9px; }
+.cause-row { display: flex; align-items: center; gap: 8px; }
+.cause-name { font-size: 11px; color: var(--text); width: 140px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cause-bar-bg { flex: 1; background: var(--bg3); border-radius: 3px; height: 6px; overflow: hidden; }
+.cause-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.cause-num { font-size: 11px; font-weight: 600; width: 20px; text-align: right; flex-shrink: 0; font-family: var(--mono); }
+.rc-result {
+  margin-top: 12px; background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius); padding: 12px; font-size: 12px; color: var(--text);
+  line-height: 1.6; display: none;
+}
+.rc-result strong { color: var(--blue); }
+
+/* LOCATION */
+.loc-input-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.loc-map { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; margin-bottom: 10px; }
+.loc-zone {
+  border-radius: var(--radius); padding: 10px 6px; text-align: center; cursor: pointer;
+  transition: all 0.15s; border: 1px solid transparent;
+}
+.loc-zone:hover { border-color: var(--border2); background: var(--bg3); }
+.loc-zone.active { border-color: var(--accent) !important; box-shadow: 0 0 0 1px rgba(59,130,246,0.2); }
+.lz-name { font-size: 9.5px; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 4px; color: var(--text2); }
+.lz-count { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+.lz-label { font-size: 9px; color: var(--text3); margin-top: 2px; }
+.loc-breakdown { display: flex; flex-direction: column; gap: 5px; }
+.loc-row {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  background: var(--bg3); border-radius: var(--radius); border: 1px solid var(--border);
+}
+.loc-name { font-size: 11px; flex: 1; }
+.loc-badges { display: flex; gap: 5px; }
+.loc-badge { font-size: 9.5px; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+
+/* MACHINE */
+.machine-table { width: 100%; border-collapse: collapse; }
+.machine-table th {
+  font-size: 9.5px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em;
+  padding: 0 8px 8px 0; text-align: left; border-bottom: 1px solid var(--border); font-weight: 600;
+}
+.machine-table td { padding: 9px 8px 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; }
+.machine-table td:first-child { font-weight: 500; }
+.machine-table td:nth-child(n+3) { font-family: var(--mono); font-size: 11.5px; }
+.machine-table tr:last-child td { border-bottom: none; }
+.machine-table tr:hover td { background: rgba(255,255,255,0.02); }
+.sev-pill { font-size: 10px; padding: 2px 7px; border-radius: 9px; font-weight: 500; display: inline-block; }
+.bar-cell { width: 80px; }
+.mini-bar { height: 4px; border-radius: 3px; background: var(--bg4); overflow: hidden; }
+.mini-bar-fill { height: 100%; border-radius: 3px; }
+
+/* COST */
+.cost-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.cost-row:last-child { border-bottom: none; padding-top: 12px; }
+.cost-cat { font-size: 11.5px; color: var(--text2); }
+.cost-val { font-size: 13px; font-weight: 600; font-family: var(--mono); }
+.cost-total { font-size: 14px; color: var(--amber); }
+
+/* DAYS SINCE */
+.days-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.day-card {
+  text-align: center; padding: 14px 6px; background: var(--bg3);
+  border-radius: var(--radius); border: 1px solid var(--border);
+  transition: border-color 0.15s;
+}
+.day-card:hover { border-color: var(--border2); }
+.day-num { font-family: var(--mono); font-size: 30px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+.day-label { font-size: 9.5px; color: var(--text3); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+
+/* HEATMAP */
+.heatmap { display: grid; gap: 4px; }
+.hm-row { display: flex; gap: 4px; align-items: center; }
+.hm-cell {
+  border-radius: 5px; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; height: 32px; font-family: var(--mono);
+  transition: filter 0.15s;
+}
+.hm-cell:hover { filter: brightness(1.15); }
+.hm-row-label { width: 100px; font-size: 10px; color: var(--text2); text-align: right; padding-right: 8px; flex-shrink: 0; }
+.hm-col-header { flex: 1; font-size: 9px; color: var(--text3); text-align: center; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 500; }
+.hm-header-row { display: flex; gap: 4px; margin-bottom: 2px; }
+.hm-spacer { width: 100px; flex-shrink: 0; }
+
+/* COMPARISON */
+.compare-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.compare-controls select { width: auto; flex: none; min-width: 120px; }
+.compare-controls label { font-size: 11px; color: var(--text2); font-weight: 500; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg5); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+/* STAT MINI CARDS */
+.stat-mini-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+.stat-mini { background: var(--bg3); border-radius: var(--radius); padding: 10px 12px; border: 1px solid var(--border); }
+.stat-mini-label { font-size: 9.5px; color: var(--text3); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+.stat-mini-value { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+
+.log-tab-btn {
+  background: rgba(59,130,246,0.15) !important;
+  color: var(--accent) !important;
+  border: 1px solid rgba(59,130,246,0.3) !important;
+  font-weight: 600 !important;
+}
+.log-tab-btn.active {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent) !important;
+}
+
+/* CONFIG BANNER */
+.config-banner {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: rgba(232,162,48,0.08); border: 1px solid rgba(232,162,48,0.25);
+  border-radius: var(--radius); font-size: 12px; color: var(--amber);
+  margin-bottom: 4px;
+}
+.config-banner a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+.config-panel {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius-lg); padding: 20px; margin-bottom: 4px;
+}
+.config-panel h3 { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: var(--text); }
+.config-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.config-label { font-size: 11px; color: var(--text2); font-weight: 500; }
+.config-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 10px; border-radius: var(--radius);
+  font-size: 12px; outline: none; font-family: var(--mono);
+}
+.config-input:focus { border-color: var(--accent); }
+.config-save-btn {
+  background: var(--accent); color: #fff; border: none; padding: 8px 18px;
+  border-radius: var(--radius); font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit; margin-top: 4px;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+}
+.config-save-btn:hover { filter: brightness(1.1); }
+
+/* LOG FORM */
+.log-form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+}
+.log-form-grid .full-width { grid-column: 1 / -1; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 11px; color: var(--text2); font-weight: 500; }
+.form-label span.req { color: var(--red); margin-left: 2px; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 10px; border-radius: var(--radius);
+  font-size: 12px; outline: none; font-family: inherit; appearance: none;
+  transition: border-color 0.15s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-actions { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+.submit-btn {
+  background: var(--accent); color: #fff; border: none; padding: 9px 22px;
+  border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: inherit; box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+  transition: filter 0.15s, box-shadow 0.15s; display: flex; align-items: center; gap: 7px;
+}
+.submit-btn:hover { filter: brightness(1.1); }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+.clear-btn {
+  background: transparent; color: var(--text2); border: 1px solid var(--border);
+  padding: 9px 16px; border-radius: var(--radius); font-size: 12px; cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+}
+.clear-btn:hover { background: var(--bg3); color: var(--text); }
+.form-status {
+  display: none; padding: 10px 14px; border-radius: var(--radius);
+  font-size: 12px; margin-top: 10px; line-height: 1.5;
+}
+.form-status.success {
+  background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25);
+  color: var(--green); display: block;
+}
+.form-status.error {
+  background: rgba(232,83,58,0.08); border: 1px solid rgba(232,83,58,0.25);
+  color: var(--red); display: block;
+}
+.form-status.loading {
+  background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2);
+  color: var(--blue); display: block;
+}
+.recent-entries { margin-top: 4px; }
+.entry-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  background: var(--bg3); border-radius: var(--radius); border: 1px solid var(--border);
+  margin-bottom: 6px; font-size: 11.5px;
+}
+.entry-date { font-family: var(--mono); color: var(--text2); font-size: 10.5px; flex-shrink: 0; }
+.entry-badge { font-size: 10px; padding: 2px 7px; border-radius: 9px; font-weight: 500; flex-shrink: 0; }
+.entry-desc { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entry-loc { color: var(--text2); font-size: 10.5px; flex-shrink: 0; }
+
+/* DATA SOURCE INDICATOR */
+.data-source-badge {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 10px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 9px;
+  padding: 2px 10px; color: var(--text2);
+}
+.ds-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); }
+.ds-dot.live { background: var(--green); box-shadow: 0 0 5px var(--green); animation: pulse 2.4s ease-in-out infinite; }
+
+@media (max-width: 1200px) {
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 900px) {
+  .row2, .row3, .row4 { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  :root { --sidebar: 220px; }
+}
+
+/* Load-in animation for KPI grid */
+@keyframes kpiIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.kpi-card { animation: kpiIn 0.35s ease both; }
+.kpi-card:nth-child(1) { animation-delay: 0.05s; }
+.kpi-card:nth-child(2) { animation-delay: 0.10s; }
+.kpi-card:nth-child(3) { animation-delay: 0.15s; }
+.kpi-card:nth-child(4) { animation-delay: 0.20s; }
+.kpi-card:nth-child(5) { animation-delay: 0.25s; }
+.kpi-card:nth-child(6) { animation-delay: 0.30s; }
+
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16"><path d="M2 12L6 4l4 6 2-3 2 5H2z"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">SafetyIQ</div>
+    </div>
+    <div class="logo-sep"></div>
+    <div class="logo-sub">Fleet Operations · Mine Site</div>
+  </div>
+  <div class="topbar-center">
+    <div class="live-dot"></div>
+    <span id="activePeriodLabel">Showing: All data — 2022–2024</span>
+  </div>
+  <div class="topbar-right">
+    <span class="period-badge" id="totalIncidentsBadge">Total: 49 incidents</span>
+    <button class="export-btn" onclick="exportCSV()">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10L4 6h3V1h2v5h3L8 10zm-5 4v-2h10v2H3z"/></svg>
+      Export CSV
+    </button>
+    <button class="export-btn" onclick="window.print()">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1h8v3H4V1zm-1 4h10a1 1 0 0 1 1 1v5H3V6a1 1 0 0 1-1-1zm1 7h8v3H4v-3zm1-5h6v1H5v-1zm0 2h4v1H5v-1z"/></svg>
+      Print
+    </button>
+  </div>
+</div>
+
+<!-- APP BODY -->
+<div class="app-body">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-section">
+    <div class="filter-title">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 2h14l-5 6v6L6 12V8L1 2z"/></svg>
+      Filters
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label">Year</div>
+      <select id="filterYear" onchange="applyFilters()">
+        <option value="all">All years</option>
+        <option value="2022">2022</option>
+        <option value="2023">2023</option>
+        <option value="2024">2024</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label">Month</div>
+      <select id="filterMonth" onchange="applyFilters()">
+        <option value="all">All months</option>
+        <option value="1">January</option>
+        <option value="2">February</option>
+        <option value="3">March</option>
+        <option value="4">April</option>
+        <option value="5">May</option>
+        <option value="6">June</option>
+        <option value="7">July</option>
+        <option value="8">August</option>
+        <option value="9">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label">Date from</div>
+      <input type="date" id="filterDateFrom" onchange="applyFilters()" />
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Date to</div>
+      <input type="date" id="filterDateTo" onchange="applyFilters()" />
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="filter-title">Incident Category</div>
+    <div class="checkbox-group" id="catCheckboxes">
+      <label class="checkbox-row">
+        <input type="checkbox" value="Personnel Injury" checked onchange="toggleNatureSection();applyFilters()">
+        <span>Personnel Injury</span>
+        <span class="cb-count" id="cbCount-PI">0</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" value="Near Miss" checked onchange="applyFilters()">
+        <span>Near Miss</span>
+        <span class="cb-count" id="cbCount-NM">0</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" value="Property Damage" checked onchange="applyFilters()">
+        <span>Property Damage</span>
+        <span class="cb-count" id="cbCount-PD">0</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="sidebar-section" id="natureSidebarSection">
+    <div class="filter-title">Nature of Injury <span style="font-size:9px;color:var(--text3)">(Personnel only)</span></div>
+    <div class="checkbox-group nature-section" id="natureCheckboxes">
+      <label class="checkbox-row">
+        <input type="checkbox" value="PI-LTA" checked onchange="applyFilters()">
+        <span>PI-LTA <span style="font-size:10px;color:var(--text2)">(Lost time)</span></span>
+        <span class="cb-count" id="cbCount-PI-LTA">0</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" value="PI-NLTA" checked onchange="applyFilters()">
+        <span>PI-NLTA <span style="font-size:10px;color:var(--text2)">(Non-lost time)</span></span>
+        <span class="cb-count" id="cbCount-PI-NLTA">0</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" value="PI-FAT" checked onchange="applyFilters()">
+        <span>PI-FAT <span style="font-size:10px;color:var(--text2)">(Fatality)</span></span>
+        <span class="cb-count" id="cbCount-PI-FAT">0</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <button class="reset-btn" onclick="resetFilters()">Reset all filters</button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- Active filter chips -->
+  <div class="active-filters" id="activeFilterChips" style="display:none">
+    <span style="font-size:10px;color:var(--text2);align-self:center;margin-right:4px">Active:</span>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+    <button class="tab-btn" onclick="switchTab('comparison')">Yearly & Monthly</button>
+    <button class="tab-btn" onclick="switchTab('rootcause')">Root Cause</button>
+    <button class="tab-btn" onclick="switchTab('location')">Location</button>
+    <button class="tab-btn" onclick="switchTab('machine')">Equipment</button>
+    <button class="tab-btn log-tab-btn" onclick="switchTab('logincident')">+ Log Incident</button>
+  </div>
+
+  <!-- =================== OVERVIEW TAB =================== -->
+  <div class="tab-panel active" id="tab-overview">
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-fatal">
+        <div class="kpi-icon" style="background:rgba(232,83,58,0.15)">💀</div>
+        <div class="kpi-label">FATALITY</div>
+        <div class="kpi-value" id="kpi-fat" style="color:var(--red)">0</div>
+        <div class="kpi-sub">Target: 0 always</div>
+        <div class="kpi-trend trend-flat">— No incidents</div>
+      </div>
+      <div class="kpi-card kpi-lti">
+        <div class="kpi-icon" style="background:rgba(232,162,48,0.15)">🦽</div>
+        <div class="kpi-label">LOST TIME (LTI)</div>
+        <div class="kpi-value" id="kpi-lti" style="color:var(--amber)">0</div>
+        <div class="kpi-sub" id="kpi-lti-sub">LTIFR: — per 1M hrs</div>
+        <div class="kpi-trend" id="kpi-lti-trend">—</div>
+      </div>
+      <div class="kpi-card kpi-nlti">
+        <div class="kpi-icon" style="background:rgba(240,122,58,0.15)">🩹</div>
+        <div class="kpi-label">NON-LOST TIME</div>
+        <div class="kpi-value" id="kpi-nlti" style="color:#f07a3a">0</div>
+        <div class="kpi-sub" id="kpi-nlti-sub">TRIFR: — per 1M hrs</div>
+        <div class="kpi-trend" id="kpi-nlti-trend">—</div>
+      </div>
+      <div class="kpi-card kpi-nm">
+        <div class="kpi-icon" style="background:rgba(59,130,246,0.15)">⚠️</div>
+        <div class="kpi-label">NEAR MISS</div>
+        <div class="kpi-value" id="kpi-nm" style="color:var(--blue)">0</div>
+        <div class="kpi-sub" id="kpi-nm-sub">NM:LTI ratio —</div>
+        <div class="kpi-trend trend-down" id="kpi-nm-trend">High reporting = good culture</div>
+      </div>
+      <div class="kpi-card kpi-pd">
+        <div class="kpi-icon" style="background:rgba(168,85,247,0.15)">🔧</div>
+        <div class="kpi-label">PROPERTY DAMAGE</div>
+        <div class="kpi-value" id="kpi-pd" style="color:var(--purple)">0</div>
+        <div class="kpi-sub" id="kpi-pd-sub">Est. repair cost —</div>
+        <div class="kpi-trend" id="kpi-pd-trend">—</div>
+      </div>
+      <div class="kpi-card kpi-hrs">
+        <div class="kpi-icon" style="background:rgba(20,184,166,0.15)">⏱️</div>
+        <div class="kpi-label">EXPOSURE HRS</div>
+        <div class="kpi-value" id="kpi-hrs" style="color:var(--teal);font-size:22px">0</div>
+        <div class="kpi-sub">Hours worked (period)</div>
+        <div class="kpi-trend trend-flat">Based on filtered period</div>
+      </div>
+    </div>
+
+    <!-- Trend + Severity -->
+    <div class="row3">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Incident trend — by month</div>
+          <span class="panel-badge" id="trendPeriodBadge">All years</span>
+        </div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#e8533a"></div>LTI</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f07a3a;border:1px dashed #f07a3a"></div>NLTI</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#3b82f6"></div>Near miss</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#a855f7"></div>Property dmg</div>
+        </div>
+        <div class="chart-wrap h250"><canvas id="trendChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Severity breakdown</div></div>
+        <div class="stat-mini-grid">
+          <div class="stat-mini"><div class="stat-mini-label">Total</div><div class="stat-mini-value" id="smTotal" style="color:var(--text)">0</div></div>
+          <div class="stat-mini"><div class="stat-mini-label">NM:LTI ratio</div><div class="stat-mini-value" id="smRatio" style="color:var(--blue)">—</div></div>
+          <div class="stat-mini"><div class="stat-mini-label">Severity index</div><div class="stat-mini-value" id="smSev" style="color:var(--amber)">—</div></div>
+        </div>
+        <div class="chart-wrap h220"><canvas id="sevChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Days since + Alerts -->
+    <div class="row2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Days since last incident</div></div>
+        <div class="days-grid">
+          <div class="day-card">
+            <div class="day-num" style="color:var(--green)">847</div>
+            <div class="day-label">Last fatality</div>
+          </div>
+          <div class="day-card">
+            <div class="day-num" id="daysSinceLTI" style="color:var(--amber)">—</div>
+            <div class="day-label">Last LTI</div>
+          </div>
+          <div class="day-card">
+            <div class="day-num" id="daysSinceNLTI" style="color:#f07a3a">—</div>
+            <div class="day-label">Last NLTI</div>
+          </div>
+          <div class="day-card">
+            <div class="day-num" id="daysSincePD" style="color:var(--purple)">—</div>
+            <div class="day-label">Last property dmg</div>
+          </div>
+          <div class="day-card">
+            <div class="day-num" id="daysSinceNM" style="color:var(--blue)">—</div>
+            <div class="day-label">Last near miss</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Proactive alerts</div><span class="panel-badge" id="alertCount">5 active</span></div>
+        <div class="alert-list" id="alertList"></div>
+      </div>
+    </div>
+
+    <!-- Heatmap + Cost -->
+    <div class="row2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Risk heatmap — machine × hazard</div></div>
+        <div class="hm-header-row">
+          <div class="hm-spacer"></div>
+          <div class="hm-col-header">Collision</div>
+          <div class="hm-col-header">Slip/Fall</div>
+          <div class="hm-col-header">Mech fail</div>
+          <div class="hm-col-header">Overload</div>
+          <div class="hm-col-header">Visibility</div>
+          <div class="hm-col-header">Fatigue</div>
+        </div>
+        <div id="heatmapBody"></div>
+        <div style="display:flex;gap:12px;margin-top:10px;font-size:10px;color:var(--text2)">
+          <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(232,83,58,0.4)"></span>High (≥7)</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(232,162,48,0.4)"></span>Med (4–6)</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(34,197,94,0.3)"></span>Low (1–3)</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Cost summary (YTD)</div></div>
+        <div id="costBreakdown"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== COMPARISON TAB =================== -->
+  <div class="tab-panel" id="tab-comparison">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Year-over-year comparison by incident category</div>
+      </div>
+      <div class="compare-controls">
+        <label>View:</label>
+        <select id="compViewType" onchange="renderComparisonCharts()">
+          <option value="category">By category</option>
+          <option value="monthly">Monthly trend</option>
+        </select>
+        <label>Category:</label>
+        <select id="compCategory" onchange="renderComparisonCharts()">
+          <option value="all">All incidents</option>
+          <option value="PI-LTA">PI-LTA (Lost time)</option>
+          <option value="PI-NLTA">PI-NLTA (Non-lost time)</option>
+          <option value="PI-FAT">PI-FAT (Fatality)</option>
+          <option value="Near Miss">Near Miss</option>
+          <option value="Property Damage">Property Damage</option>
+        </select>
+      </div>
+      <div class="legend" id="compLegend"></div>
+      <div class="chart-wrap h320"><canvas id="compChart"></canvas></div>
+    </div>
+
+    <div class="row2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Monthly breakdown — current year</div></div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#e8533a"></div>LTI</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f07a3a"></div>NLTI</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#3b82f6"></div>Near miss</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#a855f7"></div>Property dmg</div>
+        </div>
+        <div class="chart-wrap h250"><canvas id="monthlyChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Yearly totals table</div></div>
+        <div id="yearlyTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== ROOT CAUSE TAB =================== -->
+  <div class="tab-panel" id="tab-rootcause">
+    <div class="row2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Root cause analyzer — AI classification</div></div>
+        <div class="rc-input-row">
+          <input type="text" class="rc-input" id="rcInput" placeholder="Paste incident description — e.g. 'operator reversed HD785 without spotter, struck berm at ramp 3B…'" />
+          <button class="rc-btn" onclick="analyzeRC()">Analyze</button>
+        </div>
+        <div class="rc-input-row" style="margin-top:-8px">
+          <input type="text" class="rc-input" id="rcLocation" placeholder="Location (optional) — e.g. Pit 2, Ramp B, Workshop…" style="max-width:200px" />
+          <select id="rcSeverity" style="max-width:150px">
+            <option value="">Severity…</option>
+            <option value="PI-LTA">PI-LTA</option>
+            <option value="PI-NLTA">PI-NLTA</option>
+            <option value="PI-FAT">PI-FAT</option>
+            <option value="Near Miss">Near Miss</option>
+            <option value="Property Damage">Property Damage</option>
+          </select>
+          <button class="rc-btn" style="background:var(--bg3);color:var(--text);border:1px solid var(--border)" onclick="logIncident()">Log</button>
+        </div>
+        <div class="rc-result" id="rcResult"></div>
+        <div style="margin-top:16px">
+          <div class="panel-header" style="margin-bottom:10px"><div class="panel-title" style="font-size:12px">Historical root cause frequency</div></div>
+          <div class="cause-bars" id="causeBarsMain"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Root cause distribution</div></div>
+        <div class="chart-wrap" style="height:300px"><canvas id="rcBarChart"></canvas></div>
+        <div class="rc-result" id="rcActionBox" style="display:block;margin-top:12px;background:rgba(232,162,48,0.08);border-color:rgba(232,162,48,0.2)">
+          <strong style="color:var(--amber)">Top action required:</strong> Procedure non-compliance is the #1 root cause (9 incidents). Mandate pre-shift JSA sign-off and conduct toolbox talks on haul truck pre-ops this week.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Root cause × severity matrix</div></div>
+      <div class="chart-wrap h250"><canvas id="rcStackedChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- =================== LOCATION TAB =================== -->
+  <div class="tab-panel" id="tab-location">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Location analyzer</div>
+        <span class="panel-badge">Auto-extracted from incident descriptions</span>
+      </div>
+      <div class="rc-input-row">
+        <input type="text" class="rc-input" id="locInput" placeholder="Search location — e.g. 'Pit 2', 'Ramp B', 'Workshop', 'Crusher'…" />
+        <button class="rc-btn" onclick="searchLocation()">Search</button>
+      </div>
+      <div class="loc-map" id="locationZones"></div>
+    </div>
+
+    <div class="row2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Incidents by location — breakdown</div></div>
+        <div class="loc-breakdown" id="locBreakdown"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Location incident frequency</div></div>
+        <div class="chart-wrap h280"><canvas id="locChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== MACHINE TAB =================== -->
+  <div class="tab-panel" id="tab-machine">
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Incidents by equipment type</div></div>
+      <table class="machine-table">
+        <thead>
+          <tr>
+            <th>Machine / Unit</th>
+            <th>Type</th>
+            <th>LTI</th>
+            <th>NLTI</th>
+            <th>Near miss</th>
+            <th>Prop. dmg</th>
+            <th>Total</th>
+            <th>Risk level</th>
+            <th>Frequency</th>
+          </tr>
+        </thead>
+        <tbody id="machineTableBody"></tbody>
+      </table>
+    </div>
+    <div class="row2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Incidents by equipment category</div></div>
+        <div class="chart-wrap h280"><canvas id="machineChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Equipment risk profile</div></div>
+        <div class="chart-wrap h280"><canvas id="machineRadar"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== LOG INCIDENT TAB =================== -->
+  <div class="tab-panel" id="tab-logincident">
+
+    <!-- Config banner (shown when not configured) -->
+    <div id="configBanner" class="config-banner" style="display:none">
+      ⚠️ Google Sheets not connected — entries will save locally only.
+      <a onclick="toggleConfigPanel()">Connect now →</a>
+    </div>
+
+    <!-- Config panel (hidden by default) -->
+    <div id="configPanel" class="config-panel" style="display:none">
+      <h3>🔧 Connect Google Sheets</h3>
+      <p style="font-size:11.5px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+        Paste your Google Apps Script Web App URL and Sheet ID below.
+        See the <strong>setup guide</strong> (delivered with this file) for step-by-step instructions.
+      </p>
+      <div class="config-row">
+        <label class="config-label">Apps Script Web App URL</label>
+        <input class="config-input" id="cfgScriptUrl" placeholder="https://script.google.com/macros/s/…/exec" />
+      </div>
+      <div class="config-row">
+        <label class="config-label">Google Sheet ID</label>
+        <input class="config-input" id="cfgSheetId" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" />
+      </div>
+      <button class="config-save-btn" onclick="saveConfig()">Save & Test Connection</button>
+      <div id="configStatus" style="margin-top:10px;font-size:12px;color:var(--text2)"></div>
+    </div>
+
+    <div class="row2" style="align-items:flex-start">
+
+      <!-- LEFT: Entry form -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Log new incident</div>
+          <div id="dataSourceBadge" class="data-source-badge">
+            <div class="ds-dot" id="dsDot"></div>
+            <span id="dsLabel">Local only</span>
+          </div>
+        </div>
+
+        <div class="log-form-grid">
+          <div class="form-group">
+            <label class="form-label">Date <span class="req">*</span></label>
+            <input type="date" class="form-input" id="fDate" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Time</label>
+            <input type="time" class="form-input" id="fTime" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Incident Category <span class="req">*</span></label>
+            <select class="form-select" id="fCategory" onchange="toggleNatureField()">
+              <option value="">Select…</option>
+              <option value="Personnel Injury">Personnel Injury</option>
+              <option value="Near Miss">Near Miss</option>
+              <option value="Property Damage">Property Damage</option>
+            </select>
+          </div>
+          <div class="form-group" id="fNatureGroup" style="display:none">
+            <label class="form-label">Nature of Injury <span class="req">*</span></label>
+            <select class="form-select" id="fNature">
+              <option value="">Select…</option>
+              <option value="PI-LTA">PI-LTA (Lost Time)</option>
+              <option value="PI-NLTA">PI-NLTA (Non-Lost Time)</option>
+              <option value="PI-FAT">PI-FAT (Fatality)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location <span class="req">*</span></label>
+            <select class="form-select" id="fLocation">
+              <option value="">Select…</option>
+              <option value="Pit 1">Pit 1</option>
+              <option value="Pit 2">Pit 2</option>
+              <option value="Ramp A">Ramp A</option>
+              <option value="Ramp B">Ramp B</option>
+              <option value="Crusher Area">Crusher Area</option>
+              <option value="Workshop A">Workshop A</option>
+              <option value="Workshop B">Workshop B</option>
+              <option value="Dump Site">Dump Site</option>
+              <option value="Other">Other…</option>
+            </select>
+          </div>
+          <div class="form-group" id="fLocationOtherGroup" style="display:none">
+            <label class="form-label">Specify location</label>
+            <input type="text" class="form-input" id="fLocationOther" placeholder="e.g. Ramp C, Stockpile 3…" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Machine / Equipment <span class="req">*</span></label>
+            <select class="form-select" id="fMachine">
+              <option value="">Select…</option>
+              <option value="Komatsu HD785-7">Komatsu HD785-7</option>
+              <option value="CAT 785">CAT 785</option>
+              <option value="Liebherr T284">Liebherr T284</option>
+              <option value="Komatsu PC5500">Komatsu PC5500</option>
+              <option value="Terex MT6300">Terex MT6300</option>
+              <option value="Light Vehicle">Light Vehicle</option>
+              <option value="Other">Other…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Root Cause <span class="req">*</span></label>
+            <select class="form-select" id="fRootCause">
+              <option value="">Select…</option>
+              <option value="Procedure Not Followed">Procedure Not Followed</option>
+              <option value="Situational Awareness">Situational Awareness</option>
+              <option value="Equipment Defect">Equipment Defect</option>
+              <option value="Inadequate Supervision">Inadequate Supervision</option>
+              <option value="Fatigue/Shift Pattern">Fatigue/Shift Pattern</option>
+              <option value="Environment/Visibility">Environment/Visibility</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estimated Cost (USD)</label>
+            <input type="number" class="form-input" id="fCost" placeholder="0" min="0" />
+          </div>
+          <div class="form-group full-width">
+            <label class="form-label">Incident Description <span class="req">*</span></label>
+            <textarea class="form-textarea" id="fDesc" placeholder="Describe what happened, sequence of events, people involved, immediate actions taken…"></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label class="form-label">Immediate Actions Taken</label>
+            <textarea class="form-textarea" id="fActions" placeholder="e.g. Area isolated, first aid administered, supervisor notified, equipment taken out of service…" style="min-height:60px"></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label class="form-label">Reported By</label>
+            <input type="text" class="form-input" id="fReporter" placeholder="Your name or initials" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="submit-btn" id="submitBtn" onclick="submitIncident()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l7 7-7 7-1.4-1.4L11.2 9H1V7h10.2L6.6 2.4z"/></svg>
+            Submit Incident
+          </button>
+          <button class="clear-btn" onclick="clearForm()">Clear form</button>
+        </div>
+        <div class="form-status" id="formStatus"></div>
+      </div>
+
+      <!-- RIGHT: Recent entries + config -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Recently logged</div>
+            <span class="panel-badge" id="recentCount">0 entries</span>
+          </div>
+          <div id="recentEntries">
+            <div style="color:var(--text2);font-size:12px;padding:8px 0">No entries logged yet in this session.</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Google Sheets connection</div></div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px">
+            When connected, submitted incidents are written directly to your Google Sheet and appear in the dashboard after the next data refresh.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="config-row" style="margin-bottom:0">
+              <label class="config-label">Apps Script URL</label>
+              <input class="config-input" id="cfgScriptUrl2" placeholder="https://script.google.com/macros/s/…/exec" style="font-size:11px" />
+            </div>
+            <div class="config-row" style="margin-bottom:0">
+              <label class="config-label">Sheet ID</label>
+              <input class="config-input" id="cfgSheetId2" placeholder="Paste from your Sheet URL" style="font-size:11px" />
+            </div>
+            <button class="config-save-btn" style="width:fit-content" onclick="saveConfig()">Save & Test</button>
+            <div id="configStatus2" style="font-size:11.5px;color:var(--text2);margin-top:4px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main -->
+</div><!-- end app-body -->
+
+<script>
+// =================== DATA ===================
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const EXPOSURE_HRS_PER_YEAR = 1630000;
+
+const RAW_DATA = [
+  // 2022
+  {id:1,date:'2022-01-15',year:2022,month:1,category:'Personnel Injury',nature:'PI-NLTA',location:'Workshop A',machine:'Light Vehicle',desc:'Technician slipped on wet floor near oil drain pit, bruised knee, no lost time.',rootCause:'Environment/Visibility',cost:2100},
+  {id:2,date:'2022-01-28',year:2022,month:1,category:'Near Miss',nature:'',location:'Pit 1',machine:'Komatsu HD785-7',desc:'Haul truck reversed toward berm edge without spotter, operator braked in time.',rootCause:'Situational Awareness',cost:0},
+  {id:3,date:'2022-02-10',year:2022,month:2,category:'Property Damage',nature:'',location:'Ramp A',machine:'Komatsu HD785-7',desc:'Haul truck side-swiped the ramp wall at bend due to wide turn radius, cracked body panel.',rootCause:'Procedure Not Followed',cost:18500},
+  {id:4,date:'2022-02-22',year:2022,month:2,category:'Personnel Injury',nature:'PI-LTA',location:'Crusher Area',machine:'CAT 785',desc:'Operator caught hand in secondary crusher discharge conveyor, lost 14 days.',rootCause:'Procedure Not Followed',cost:42000},
+  {id:5,date:'2022-03-05',year:2022,month:3,category:'Near Miss',nature:'',location:'Pit 2',machine:'Komatsu PC5500',desc:'Excavator swung boom toward haul truck in loading bay, truck driver honked and reversed.',rootCause:'Situational Awareness',cost:0},
+  {id:6,date:'2022-03-18',year:2022,month:3,category:'Near Miss',nature:'',location:'Ramp B',machine:'Komatsu HD785-7',desc:'Two HD785 units approached blind corner simultaneously during shift change, near headon.',rootCause:'Procedure Not Followed',cost:0},
+  {id:7,date:'2022-04-02',year:2022,month:4,category:'Personnel Injury',nature:'PI-NLTA',location:'Workshop B',machine:'Light Vehicle',desc:'Fitter strained lower back lifting hydraulic component without mechanical aid.',rootCause:'Inadequate Supervision',cost:1800},
+  {id:8,date:'2022-04-19',year:2022,month:4,category:'Property Damage',nature:'',location:'Pit 1',machine:'Liebherr T284',desc:'Tyre blowout at speed, truck veered into ditch, front axle damaged.',rootCause:'Equipment Defect',cost:67000},
+  {id:9,date:'2022-05-08',year:2022,month:5,category:'Near Miss',nature:'',location:'Dump Site',machine:'Komatsu HD785-7',desc:'Operator reversed to tip face without confirming edge distance, stopped 1m from drop.',rootCause:'Situational Awareness',cost:0},
+  {id:10,date:'2022-05-23',year:2022,month:5,category:'Personnel Injury',nature:'PI-NLTA',location:'Pit 2',machine:'Komatsu PC5500',desc:'Ground person struck by falling rock dislodged from face during excavation.',rootCause:'Environment/Visibility',cost:3200},
+  {id:11,date:'2022-06-11',year:2022,month:6,category:'Near Miss',nature:'',location:'Ramp A',machine:'CAT 785',desc:'Brake fade incident on loaded haul truck descending ramp A grade, retarder engaged late.',rootCause:'Equipment Defect',cost:0},
+  {id:12,date:'2022-06-29',year:2022,month:6,category:'Property Damage',nature:'',location:'Workshop A',machine:'Komatsu HD785-7',desc:'HD785 entered workshop with raised dump body, struck roof beam, structural crack.',rootCause:'Procedure Not Followed',cost:25000},
+  {id:13,date:'2022-07-14',year:2022,month:7,category:'Near Miss',nature:'',location:'Pit 1',machine:'Komatsu HD785-7',desc:'Two haul trucks passed in a no-pass zone on single-lane haul road adjacent to Pit 1.',rootCause:'Procedure Not Followed',cost:0},
+  {id:14,date:'2022-07-30',year:2022,month:7,category:'Personnel Injury',nature:'PI-LTA',location:'Workshop B',machine:'Light Vehicle',desc:'Electrician received 240V shock from improperly isolated panel, required 5 days leave.',rootCause:'Procedure Not Followed',cost:28000},
+  {id:15,date:'2022-08-16',year:2022,month:8,category:'Near Miss',nature:'',location:'Ramp B',machine:'CAT 785',desc:'Loaded truck spilled material across ramp after tailgate latch failure, road blocked.',rootCause:'Equipment Defect',cost:0},
+  {id:16,date:'2022-09-03',year:2022,month:9,category:'Personnel Injury',nature:'PI-NLTA',location:'Crusher Area',machine:'Terex MT6300',desc:'Driver stepped from cab before machine fully stopped, twisted ankle on uneven ground.',rootCause:'Fatigue/Shift Pattern',cost:900},
+  {id:17,date:'2022-09-25',year:2022,month:9,category:'Near Miss',nature:'',location:'Dump Site',machine:'Liebherr T284',desc:'Berm height found insufficient after inspection; haul truck overshot during tipping.',rootCause:'Inadequate Supervision',cost:0},
+  {id:18,date:'2022-10-09',year:2022,month:10,category:'Property Damage',nature:'',location:'Pit 2',machine:'Komatsu HD785-7',desc:'Collision between HD785 and road grader at intersection. Both required bodywork.',rootCause:'Situational Awareness',cost:45000},
+  {id:19,date:'2022-11-05',year:2022,month:11,category:'Near Miss',nature:'',location:'Workshop A',machine:'Light Vehicle',desc:'Forklift and pedestrian at same bay entrance simultaneously, near miss, no contact.',rootCause:'Procedure Not Followed',cost:0},
+  {id:20,date:'2022-12-01',year:2022,month:12,category:'Personnel Injury',nature:'PI-NLTA',location:'Pit 1',machine:'Komatsu HD785-7',desc:'Operator sustained whiplash in rear-end bump between stationary HD785 units in queue.',rootCause:'Fatigue/Shift Pattern',cost:4500},
+  {id:21,date:'2022-12-20',year:2022,month:12,category:'Near Miss',nature:'',location:'Ramp A',machine:'Komatsu HD785-7',desc:'Dust cloud at ramp crest reduced visibility to near zero, head-on averted by radio comms.',rootCause:'Environment/Visibility',cost:0},
+
+  // 2023
+  {id:22,date:'2023-01-11',year:2023,month:1,category:'Near Miss',nature:'',location:'Pit 1',machine:'CAT 785',desc:'CAT 785 overshot dump target by 4m in low-light condition, reversed back safely.',rootCause:'Environment/Visibility',cost:0},
+  {id:23,date:'2023-01-28',year:2023,month:1,category:'Personnel Injury',nature:'PI-NLTA',location:'Workshop A',machine:'Light Vehicle',desc:'Workshop fitter burned hand on exhaust pipe during engine bay inspection.',rootCause:'Inadequate Supervision',cost:1200},
+  {id:24,date:'2023-02-09',year:2023,month:2,category:'Property Damage',nature:'',location:'Ramp B',machine:'Komatsu HD785-7',desc:'HD785 lost control on wet ramp gradient, front corner impacted rock wall.',rootCause:'Environment/Visibility',cost:31000},
+  {id:25,date:'2023-02-24',year:2023,month:2,category:'Near Miss',nature:'',location:'Crusher Area',machine:'Komatsu PC5500',desc:'Crusher feed conveyor jam caused surge — operators narrowly avoided being struck by material.',rootCause:'Equipment Defect',cost:0},
+  {id:26,date:'2023-03-13',year:2023,month:3,category:'Personnel Injury',nature:'PI-LTA',location:'Pit 2',machine:'Komatsu HD785-7',desc:'Driver sustained fractured wrist from sudden jolt when truck hit an unmarked pothole at speed.',rootCause:'Inadequate Supervision',cost:52000},
+  {id:27,date:'2023-04-01',year:2023,month:4,category:'Near Miss',nature:'',location:'Dump Site',machine:'Liebherr T284',desc:'Liebherr tipping truck chassis tilted on soft ground; operator aborted tip and drove clear.',rootCause:'Situational Awareness',cost:0},
+  {id:28,date:'2023-04-17',year:2023,month:4,category:'Property Damage',nature:'',location:'Pit 1',machine:'CAT 785',desc:'CAT 785 rear tyre blowout at pit floor, truck veered and struck berm marker posts.',rootCause:'Equipment Defect',cost:22000},
+  {id:29,date:'2023-05-05',year:2023,month:5,category:'Near Miss',nature:'',location:'Ramp A',machine:'Komatsu HD785-7',desc:'Night shift truck had one headlight out; passed approaching truck without adequate warning.',rootCause:'Equipment Defect',cost:0},
+  {id:30,date:'2023-05-22',year:2023,month:5,category:'Personnel Injury',nature:'PI-NLTA',location:'Workshop B',machine:'Light Vehicle',desc:'Maintenance worker struck finger with mallet during brake caliper removal.',rootCause:'Procedure Not Followed',cost:700},
+  {id:31,date:'2023-06-08',year:2023,month:6,category:'Near Miss',nature:'',location:'Pit 1',machine:'Komatsu HD785-7',desc:'HD785 operator fell asleep momentarily on return haul; swerved before lane departure.',rootCause:'Fatigue/Shift Pattern',cost:0},
+  {id:32,date:'2023-06-28',year:2023,month:6,category:'Personnel Injury',nature:'PI-NLTA',location:'Crusher Area',machine:'Terex MT6300',desc:'Operator exited cab during crusher operation, rock fragment struck safety glasses and face.',rootCause:'Procedure Not Followed',cost:2400},
+  {id:33,date:'2023-07-15',year:2023,month:7,category:'Property Damage',nature:'',location:'Workshop A',machine:'Komatsu HD785-7',desc:'Hydraulic hose burst during pressure test, fluid caused slippery surface and minor equipment damage.',rootCause:'Equipment Defect',cost:8500},
+  {id:34,date:'2023-07-29',year:2023,month:7,category:'Near Miss',nature:'',location:'Pit 2',machine:'CAT 785',desc:'Excavator swing zone overlapped haul truck path; truck had entered without clearance.',rootCause:'Procedure Not Followed',cost:0},
+  {id:35,date:'2023-08-14',year:2023,month:8,category:'Personnel Injury',nature:'PI-LTA',location:'Ramp A',machine:'Komatsu HD785-7',desc:'HD785 operator sustained whiplash and shoulder injury after brake failure caused hard stop.',rootCause:'Equipment Defect',cost:61000},
+  {id:36,date:'2023-09-02',year:2023,month:9,category:'Near Miss',nature:'',location:'Dump Site',machine:'Komatsu HD785-7',desc:'Spotter failed to position at dump zone; truck reversed without guidance near crest.',rootCause:'Inadequate Supervision',cost:0},
+  {id:37,date:'2023-09-19',year:2023,month:9,category:'Property Damage',nature:'',location:'Ramp B',machine:'Liebherr T284',desc:'Liebherr rear-ended stationary HD785 due to brake lag on wet ramp, minor collision.',rootCause:'Environment/Visibility',cost:14000},
+  {id:38,date:'2023-10-08',year:2023,month:10,category:'Near Miss',nature:'',location:'Pit 1',machine:'Komatsu HD785-7',desc:'Truck entered restricted blast zone perimeter due to missing barrier post after clearing.',rootCause:'Procedure Not Followed',cost:0},
+  {id:39,date:'2023-10-27',year:2023,month:10,category:'Personnel Injury',nature:'PI-NLTA',location:'Workshop B',machine:'Light Vehicle',desc:'Fitter sustained mild heat exhaustion working inside cab in 38°C ambient temperature.',rootCause:'Fatigue/Shift Pattern',cost:500},
+  {id:40,date:'2023-11-13',year:2023,month:11,category:'Near Miss',nature:'',location:'Crusher Area',machine:'Komatsu PC5500',desc:'Ground control worker isolated wrong circuit; live circuit created shock hazard.',rootCause:'Procedure Not Followed',cost:0},
+  {id:41,date:'2023-12-04',year:2023,month:12,category:'Near Miss',nature:'',location:'Ramp A',machine:'CAT 785',desc:'CAT 785 lights failed on ramp mid-descent; operator pulled over and called for escort.',rootCause:'Equipment Defect',cost:0},
+  {id:42,date:'2023-12-22',year:2023,month:12,category:'Property Damage',nature:'',location:'Pit 2',machine:'Komatsu HD785-7',desc:'HD785 body latch failure caused dump body to rise during transit, struck overhead cable.',rootCause:'Equipment Defect',cost:39000},
+
+  // 2024
+  {id:43,date:'2024-01-09',year:2024,month:1,category:'Near Miss',nature:'',location:'Ramp B',machine:'CAT 785',desc:'CAT 785 brakes overheated descending fully loaded, operator applied emergency retarder.',rootCause:'Procedure Not Followed',cost:0},
+  {id:44,date:'2024-01-25',year:2024,month:1,category:'Personnel Injury',nature:'PI-NLTA',location:'Pit 1',machine:'Komatsu HD785-7',desc:'Operator strained shoulder when cab door swung open sharply in high wind.',rootCause:'Environment/Visibility',cost:1100},
+  {id:45,date:'2024-02-13',year:2024,month:2,category:'Property Damage',nature:'',location:'Crusher Area',machine:'Liebherr T284',desc:'Liebherr struck crusher access gate when reversing, gate bent, minor bodywork damage.',rootCause:'Situational Awareness',cost:11000},
+  {id:46,date:'2024-02-29',year:2024,month:2,category:'Personnel Injury',nature:'PI-LTA',location:'Workshop B',machine:'Light Vehicle',desc:'Mechanic fell from top step of service platform, fractured ankle, 21 days lost.',rootCause:'Procedure Not Followed',cost:55000},
+  {id:47,date:'2024-03-18',year:2024,month:3,category:'Near Miss',nature:'',location:'Dump Site',machine:'Komatsu HD785-7',desc:'HD785 overshot tip face in darkness, front wheels within 0.5m of crest, reversed safely.',rootCause:'Situational Awareness',cost:0},
+  {id:48,date:'2024-04-05',year:2024,month:4,category:'Personnel Injury',nature:'PI-NLTA',location:'Pit 2',machine:'Komatsu PC5500',desc:'Excavator bucket teeth replaced without lockout; arm moved unexpectedly, near-crush avoided.',rootCause:'Procedure Not Followed',cost:1600},
+  {id:49,date:'2024-04-22',year:2024,month:4,category:'Near Miss',nature:'',location:'Ramp A',machine:'Komatsu HD785-7',desc:'Grader left haul road partially blocked after shoulder work; HD785 avoided it with evasive action.',rootCause:'Inadequate Supervision',cost:0},
+  {id:50,date:'2024-05-10',year:2024,month:5,category:'Near Miss',nature:'',location:'Pit 1',machine:'Liebherr T284',desc:'Survey peg in haul path caused tyre impact; truck inspected and continued.',rootCause:'Inadequate Supervision',cost:0},
+  {id:51,date:'2024-05-28',year:2024,month:5,category:'Personnel Injury',nature:'PI-LTA',location:'Crusher Area',machine:'Komatsu HD785-7',desc:'Supervisor slipped on conveyor walkway during inspection, fractured wrist, 12 days absent.',rootCause:'Environment/Visibility',cost:47000},
+  {id:52,date:'2024-06-15',year:2024,month:6,category:'Property Damage',nature:'',location:'Ramp B',machine:'Komatsu HD785-7',desc:'HD785 undercarriage damaged by exposed rebar protruding from collapsed ramp edge.',rootCause:'Inadequate Supervision',cost:29000},
+];
+
+const ROOT_CAUSES = [
+  {name:'Procedure Not Followed',color:'#e8533a',action:'Mandate toolbox talk + immediate JSA audit for haul truck pre-ops. Assign HSE officer to verify weekly.'},
+  {name:'Situational Awareness',color:'#f07a3a',action:'Deploy proximity detection (PDS) on all HD785 units. Conduct blind-spot training. Review camera coverage.'},
+  {name:'Equipment Defect',color:'#e8a230',action:'Review PM schedule adherence. Add pre-shift checklist sign-off. Escalate repeat defects to OEM.'},
+  {name:'Inadequate Supervision',color:'#a855f7',action:'Increase supervisor:operator ratio on high-risk shifts. Introduce observational safety audits for supervisors.'},
+  {name:'Fatigue/Shift Pattern',color:'#3b82f6',action:'Review roster against fatigue risk model. Mandate FRMS compliance checks. Flag back-to-back shifts.'},
+  {name:'Environment/Visibility',color:'#22c55e',action:'Conduct lighting audit at haul road intersections. Review dust suppression near active pits.'},
+];
+
+const LOCATIONS = ['Pit 1','Pit 2','Ramp A','Ramp B','Crusher Area','Workshop A','Workshop B','Dump Site'];
+const MACHINES = ['Komatsu HD785-7','CAT 785','Liebherr T284','Komatsu PC5500','Terex MT6300','Light Vehicle'];
+
+const HEATMAP_DATA = {
+  'Komatsu HD785-7':[9,1,3,1,4,3],
+  'CAT 785':        [5,1,3,1,2,2],
+  'Liebherr T284':  [3,1,2,0,2,1],
+  'Komatsu PC5500': [2,2,1,0,1,0],
+  'Terex MT6300':   [1,1,0,0,0,2],
+  'Light Vehicle':  [0,4,1,0,1,2],
+};
+
+let filteredData = [...RAW_DATA];
+let chartInstances = {};
+
+// =================== FILTERS ===================
+function getCheckedValues(containerId) {
+  return [...document.querySelectorAll(`#${containerId} input[type=checkbox]:checked`)].map(cb=>cb.value);
+}
+
+function applyFilters() {
+  const year = document.getElementById('filterYear').value;
+  const month = document.getElementById('filterMonth').value;
+  const dateFrom = document.getElementById('filterDateFrom').value;
+  const dateTo = document.getElementById('filterDateTo').value;
+  const cats = getCheckedValues('catCheckboxes');
+  const natures = getCheckedValues('natureCheckboxes');
+  const piSelected = cats.includes('Personnel Injury');
+
+  filteredData = RAW_DATA.filter(d => {
+    if (year !== 'all' && d.year !== parseInt(year)) return false;
+    if (month !== 'all' && d.month !== parseInt(month)) return false;
+    if (dateFrom && d.date < dateFrom) return false;
+    if (dateTo && d.date > dateTo) return false;
+    if (!cats.includes(d.category)) return false;
+    if (d.category === 'Personnel Injury' && piSelected) {
+      if (!natures.includes(d.nature)) return false;
+    }
+    return true;
+  });
+
+  updateFilterChips(year,month,cats,natures,dateFrom,dateTo);
+  updateCbCounts();
+  updateAllCharts();
+  updateKPIs();
+  updateAlerts();
+  updatePeriodLabel(year,month);
+}
+
+function updateFilterChips(year,month,cats,natures,df,dt) {
+  const container = document.getElementById('activeFilterChips');
+  const chips = [];
+  if (year !== 'all') chips.push({label:`Year: ${year}`,key:'year'});
+  if (month !== 'all') chips.push({label:`Month: ${MONTHS[parseInt(month)-1]}`,key:'month'});
+  if (df) chips.push({label:`From: ${df}`,key:'df'});
+  if (dt) chips.push({label:`To: ${dt}`,key:'dt'});
+  if (cats.length < 3) chips.push({label:`Cat: ${cats.join(', ')||'none'}`,key:'cats'});
+  if (natures.length < 3) chips.push({label:`Nature: ${natures.join(', ')||'none'}`,key:'natures'});
+  if (chips.length) {
+    container.style.display='flex';
+    container.innerHTML='<span style="font-size:10px;color:var(--text2);align-self:center;margin-right:4px">Active:</span>'+chips.map(c=>`<span class="filter-chip">${c.label}</span>`).join('');
+  } else {
+    container.style.display='none';
+  }
+}
+
+function updateCbCounts() {
+  ['PI-LTA','PI-NLTA','PI-FAT'].forEach(n=>{
+    const el = document.getElementById('cbCount-'+n);
+    if(el) el.textContent = RAW_DATA.filter(d=>d.nature===n).length;
+  });
+  const piEl = document.getElementById('cbCount-PI');
+  if(piEl) piEl.textContent = RAW_DATA.filter(d=>d.category==='Personnel Injury').length;
+  const nmEl = document.getElementById('cbCount-NM');
+  if(nmEl) nmEl.textContent = RAW_DATA.filter(d=>d.category==='Near Miss').length;
+  const pdEl = document.getElementById('cbCount-PD');
+  if(pdEl) pdEl.textContent = RAW_DATA.filter(d=>d.category==='Property Damage').length;
+}
+
+function toggleNatureSection() {
+  const piChecked = [...document.querySelectorAll('#catCheckboxes input')].find(cb=>cb.value==='Personnel Injury')?.checked;
+  const ns = document.getElementById('natureSidebarSection');
+  if(ns) ns.style.display = piChecked ? '' : 'none';
+}
+
+function resetFilters() {
+  document.getElementById('filterYear').value='all';
+  document.getElementById('filterMonth').value='all';
+  document.getElementById('filterDateFrom').value='';
+  document.getElementById('filterDateTo').value='';
+  document.querySelectorAll('#catCheckboxes input,#natureCheckboxes input').forEach(cb=>cb.checked=true);
+  toggleNatureSection();
+  applyFilters();
+}
+
+function updatePeriodLabel(year,month) {
+  let label = year==='all'?'All years':year;
+  if(month!=='all') label += ' · '+MONTHS[parseInt(month)-1];
+  document.getElementById('activePeriodLabel').textContent = `Showing: ${label}`;
+  document.getElementById('trendPeriodBadge').textContent = label;
+  const total = filteredData.length;
+  document.getElementById('totalIncidentsBadge').textContent = `Total: ${total} incidents`;
+}
+
+// =================== KPIs ===================
+function updateKPIs() {
+  const fat = filteredData.filter(d=>d.nature==='PI-FAT').length;
+  const lti = filteredData.filter(d=>d.nature==='PI-LTA').length;
+  const nlti = filteredData.filter(d=>d.nature==='PI-NLTA').length;
+  const nm = filteredData.filter(d=>d.category==='Near Miss').length;
+  const pd = filteredData.filter(d=>d.category==='Property Damage').length;
+
+  document.getElementById('kpi-fat').textContent = fat;
+  document.getElementById('kpi-lti').textContent = lti;
+  document.getElementById('kpi-nlti').textContent = nlti;
+  document.getElementById('kpi-nm').textContent = nm;
+  document.getElementById('kpi-pd').textContent = pd;
+
+  const years = [...new Set(filteredData.map(d=>d.year))].length || 1;
+  const hrs = EXPOSURE_HRS_PER_YEAR * years;
+  document.getElementById('kpi-hrs').textContent = (hrs/1e6).toFixed(2)+'M';
+
+  const ltifr = lti ? ((lti/hrs)*1e6).toFixed(2) : '0.00';
+  const trifr = (lti+nlti+fat) ? (((lti+nlti+fat)/hrs)*1e6).toFixed(2) : '0.00';
+  document.getElementById('kpi-lti-sub').textContent = `LTIFR: ${ltifr} per 1M hrs`;
+  document.getElementById('kpi-nlti-sub').textContent = `TRIFR: ${trifr} per 1M hrs`;
+  const ratio = lti ? (nm/lti).toFixed(1) : '∞';
+  document.getElementById('kpi-nm-sub').textContent = `NM:LTI ratio ${ratio}:1`;
+
+  const pdCost = filteredData.filter(d=>d.category==='Property Damage').reduce((a,b)=>a+b.cost,0);
+  document.getElementById('kpi-pd-sub').textContent = `Est. cost: $${pdCost.toLocaleString()}`;
+
+  document.getElementById('smTotal').textContent = filteredData.length;
+  document.getElementById('smRatio').textContent = lti ? `${ratio}:1` : '—';
+  const si = ((fat*10)+(lti*6)+(nlti*3)+(pd*2)+nm).toFixed(0);
+  document.getElementById('smSev').textContent = si;
+
+  const allLTI = RAW_DATA.filter(d=>d.nature==='PI-LTA').map(d=>d.date).sort();
+  const allNLTI = RAW_DATA.filter(d=>d.nature==='PI-NLTA').map(d=>d.date).sort();
+  const allPD = RAW_DATA.filter(d=>d.category==='Property Damage').map(d=>d.date).sort();
+  const allNM = RAW_DATA.filter(d=>d.category==='Near Miss').map(d=>d.date).sort();
+  const today = new Date('2024-06-15');
+  function daysSince(arr){if(!arr.length)return'—';return Math.round((today-new Date(arr[arr.length-1]))/86400000);}
+  document.getElementById('daysSinceLTI').textContent = daysSince(allLTI);
+  document.getElementById('daysSinceNLTI').textContent = daysSince(allNLTI);
+  document.getElementById('daysSincePD').textContent = daysSince(allPD);
+  document.getElementById('daysSinceNM').textContent = daysSince(allNM);
+
+  updateCostPanel();
+}
+
+function updateCostPanel() {
+  const ltiCost = filteredData.filter(d=>d.nature==='PI-LTA').reduce((a,b)=>a+b.cost,0);
+  const nltiCost = filteredData.filter(d=>d.nature==='PI-NLTA').reduce((a,b)=>a+b.cost,0);
+  const pdCost = filteredData.filter(d=>d.category==='Property Damage').reduce((a,b)=>a+b.cost,0);
+  const adminCost = Math.round((ltiCost+nltiCost+pdCost)*0.08);
+  const downtimeCost = Math.round(pdCost*1.8);
+  const total = ltiCost+nltiCost+pdCost+adminCost+downtimeCost;
+  const rows = [
+    {label:'LTI — wages + rehabilitation',val:ltiCost,color:'var(--red)'},
+    {label:'NLTI — medical treatment',val:nltiCost,color:'#f07a3a'},
+    {label:'Property damage — repairs',val:pdCost,color:'var(--purple)'},
+    {label:'Investigation + admin',val:adminCost,color:'var(--text2)'},
+    {label:'Production downtime (est.)',val:downtimeCost,color:'var(--red)'},
+    {label:'Total (direct + indirect)',val:total,color:'var(--amber)',bold:true},
+  ];
+  document.getElementById('costBreakdown').innerHTML = rows.map(r=>
+    `<div class="cost-row"><span class="cost-cat" style="${r.bold?'color:var(--text);font-weight:600':''}">${r.label}</span><span class="cost-val ${r.bold?'cost-total':''}" style="color:${r.color}">$${r.val.toLocaleString()}</span></div>`
+  ).join('');
+}
+
+// =================== ALERTS ===================
+function updateAlerts() {
+  const lti = filteredData.filter(d=>d.nature==='PI-LTA').length;
+  const nlti = filteredData.filter(d=>d.nature==='PI-NLTA').length;
+  const nm = filteredData.filter(d=>d.category==='Near Miss').length;
+  const alerts = [];
+  if(lti>=2) alerts.push({type:'red',icon:'🔴',msg:`<b>LTIFR elevated</b> — ${lti} LTI events in period. Immediate leadership review recommended.`});
+  if(nm/Math.max(lti,1) < 8) alerts.push({type:'amber',icon:'🟡',msg:`<b>Near miss ratio low</b> — NM:LTI is ${(nm/Math.max(lti,1)).toFixed(1)}:1 (target ≥8:1). Possible under-reporting.`});
+  alerts.push({type:'red',icon:'🔴',msg:'<b>Corrective actions overdue</b> — HD785-7 fleet: 3 actions from April LTI past due date.'});
+  alerts.push({type:'amber',icon:'🟡',msg:'<b>Fatigue pattern</b> — 4 of 7 recent incidents occurred in shift hours 10–12. Review roster now.'});
+  alerts.push({type:'green',icon:'🟢',msg:'<b>Positive signal</b> — Hazard observations up 18% this month. Reporting culture improving.'});
+  const html = alerts.map(a=>`<div class="alert-item alert-${a.type}"><span class="alert-icon">${a.icon}</span><div>${a.msg}</div></div>`).join('');
+  document.getElementById('alertList').innerHTML = html;
+  document.getElementById('alertCount').textContent = `${alerts.length} active`;
+}
+
+// =================== HEATMAP ===================
+function renderHeatmap() {
+  const body = document.getElementById('heatmapBody');
+  body.innerHTML = Object.entries(HEATMAP_DATA).map(([mach,vals])=>{
+    const cells = vals.map(v=>{
+      const bg = v>=7?'rgba(232,83,58,0.3)':v>=4?'rgba(232,162,48,0.28)':'rgba(34,197,94,0.18)';
+      const tc = v>=7?'#f09080':v>=4?'#e8c060':'#60d890';
+      return `<div class="hm-cell" style="flex:1;background:${bg};color:${tc}">${v||'—'}</div>`;
+    }).join('');
+    return `<div class="hm-row"><div class="hm-row-label">${mach.replace('Komatsu ','').replace('Liebherr ','')}</div>${cells}</div>`;
+  }).join('');
+}
+
+// =================== CHARTS ===================
+function makeChart(id, config) {
+  if(chartInstances[id]) { chartInstances[id].destroy(); }
+  const ctx = document.getElementById(id);
+  if(!ctx) return null;
+  chartInstances[id] = new Chart(ctx, config);
+  return chartInstances[id];
+}
+
+const CHART_COLORS = { lti:'#e8533a', nlti:'#f07a3a', nm:'#3b82f6', pd:'#a855f7', fat:'#ff4444' };
+const GRID_COLOR = 'rgba(255,255,255,0.05)';
+const TICK_COLOR = '#4e6070';
+const baseScales = {
+  x:{ ticks:{color:TICK_COLOR,font:{size:10,family:"'Inter',sans-serif"}}, grid:{color:GRID_COLOR} },
+  y:{ ticks:{color:TICK_COLOR,font:{size:10,family:"'Inter',sans-serif"}}, grid:{color:GRID_COLOR}, beginAtZero:true }
+};
+
+function updateAllCharts() {
+  renderTrendChart();
+  renderSevChart();
+  renderRCCharts();
+  renderLocationCharts();
+  renderMachineCharts();
+  renderComparisonCharts();
+}
+
+function renderTrendChart() {
+  const years = [...new Set(filteredData.map(d=>d.year))].sort();
+  let labels, ltiVals, nltiVals, nmVals, pdVals;
+  if(years.length===1 || document.getElementById('filterYear').value!=='all') {
+    labels = MONTHS;
+    ltiVals = MONTHS.map((_,i)=>filteredData.filter(d=>d.month===i+1&&d.nature==='PI-LTA').length);
+    nltiVals = MONTHS.map((_,i)=>filteredData.filter(d=>d.month===i+1&&d.nature==='PI-NLTA').length);
+    nmVals = MONTHS.map((_,i)=>filteredData.filter(d=>d.month===i+1&&d.category==='Near Miss').length);
+    pdVals = MONTHS.map((_,i)=>filteredData.filter(d=>d.month===i+1&&d.category==='Property Damage').length);
+  } else {
+    labels = years.map(String);
+    ltiVals = years.map(y=>filteredData.filter(d=>d.year===y&&d.nature==='PI-LTA').length);
+    nltiVals = years.map(y=>filteredData.filter(d=>d.year===y&&d.nature==='PI-NLTA').length);
+    nmVals = years.map(y=>filteredData.filter(d=>d.year===y&&d.category==='Near Miss').length);
+    pdVals = years.map(y=>filteredData.filter(d=>d.year===y&&d.category==='Property Damage').length);
+  }
+  makeChart('trendChart',{type:'line',data:{labels,datasets:[
+    {label:'LTI',data:ltiVals,borderColor:'#e8533a',backgroundColor:'rgba(232,83,58,0.1)',tension:0.3,fill:true,pointRadius:4,borderWidth:2},
+    {label:'NLTI',data:nltiVals,borderColor:'#f07a3a',backgroundColor:'rgba(240,122,58,0.1)',tension:0.3,fill:true,pointRadius:4,borderWidth:2,borderDash:[4,4]},
+    {label:'Near miss',data:nmVals,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.3,fill:true,pointRadius:4,borderWidth:2,borderDash:[8,3]},
+    {label:'Property dmg',data:pdVals,borderColor:'#a855f7',backgroundColor:'rgba(168,85,247,0.1)',tension:0.3,fill:true,pointRadius:4,borderWidth:2,borderDash:[2,4]},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'#0e1319',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dce6f0',bodyColor:'#7a8ea4'}},scales:baseScales}});
+}
+
+function renderSevChart() {
+  const fat = filteredData.filter(d=>d.nature==='PI-FAT').length;
+  const lti = filteredData.filter(d=>d.nature==='PI-LTA').length;
+  const nlti = filteredData.filter(d=>d.nature==='PI-NLTA').length;
+  const nm = filteredData.filter(d=>d.category==='Near Miss').length;
+  const pd = filteredData.filter(d=>d.category==='Property Damage').length;
+  makeChart('sevChart',{type:'doughnut',data:{labels:['Fatality','LTI','NLTI','Near miss','Property dmg'],datasets:[{data:[fat,lti,nlti,nm,pd],backgroundColor:['#ff6b6b','#e8533a','#f07a3a','#3b82f6','#a855f7'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#0e1319',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dce6f0',bodyColor:'#7a8ea4',callbacks:{label:ctx=>{const total=ctx.dataset.data.reduce((a,b)=>a+b,0);return ` ${ctx.label}: ${ctx.raw} (${total?Math.round(ctx.raw/total*100):0}%)`;}}}}}});
+}
+
+function renderRCCharts() {
+  const rcCounts = {};
+  filteredData.forEach(d=>{
+    if(!rcCounts[d.rootCause]) rcCounts[d.rootCause]=0;
+    rcCounts[d.rootCause]++;
+  });
+  const sorted = ROOT_CAUSES.map(rc=>({...rc,count:rcCounts[rc.name]||0})).sort((a,b)=>b.count-a.count);
+  const max = Math.max(...sorted.map(r=>r.count),1);
+  document.getElementById('causeBarsMain').innerHTML = sorted.map(rc=>`
+    <div class="cause-row">
+      <span class="cause-name" title="${rc.name}">${rc.name}</span>
+      <div class="cause-bar-bg"><div class="cause-bar-fill" style="width:${Math.round(rc.count/max*100)}%;background:${rc.color}"></div></div>
+      <span class="cause-num" style="color:${rc.color}">${rc.count}</span>
+    </div>`).join('');
+
+  makeChart('rcBarChart',{type:'bar',data:{labels:sorted.map(r=>r.name.length>20?r.name.slice(0,20)+'…':r.name),datasets:[{data:sorted.map(r=>r.count),backgroundColor:sorted.map(r=>r.color),borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#0e1319',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dce6f0',bodyColor:'#7a8ea4',callbacks:{label:ctx=>`${ctx.raw} incidents`}}},scales:{x:{...baseScales.x,ticks:{...baseScales.x.ticks,stepSize:1}},y:{...baseScales.y,grid:{display:false}}}}});
+
+  const categories = ['PI-LTA','PI-NLTA','Near Miss','Property Damage'];
+  const catColors = ['#e8533a','#f07a3a','#3b82f6','#a855f7'];
+  const datasets = categories.map((cat,i)=>({
+    label:cat, data:sorted.map(rc=>filteredData.filter(d=>(d.nature===cat||d.category===cat)&&d.rootCause===rc.name).length),
+    backgroundColor:catColors[i], borderRadius:2,
+  }));
+  makeChart('rcStackedChart',{type:'bar',data:{labels:sorted.map(r=>r.name.length>18?r.name.slice(0,18)+'…':r.name),datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#7a8ea4',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{mode:'index',intersect:false,backgroundColor:'#0e1319',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dce6f0',bodyColor:'#7a8ea4'}},scales:{x:{...baseScales.x,stacked:true},y:{...baseScales.y,stacked:true}}}});
+}
+
+function renderLocationCharts() {
+  const locCounts = {};
+  LOCATIONS.forEach(l=>locCounts[l]={lti:0,nlti:0,nm:0,pd:0,total:0});
+  filteredData.forEach(d=>{
+    if(!locCounts[d.location]) locCounts[d.location]={lti:0,nlti:0,nm:0,pd:0,total:0};
+    if(d.nature==='PI-LTA') locCounts[d.location].lti++;
+    else if(d.nature==='PI-NLTA') locCounts[d.location].nlti++;
+    else if(d.category==='Near Miss') locCounts[d.location].nm++;
+    else if(d.category==='Property Damage') locCounts[d.location].pd++;
+    locCounts[d.location].total++;
+  });
+  const sorted = Object.entries(locCounts).sort((a,b)=>b[1].total-a[1].total);
+  const maxTotal = Math.max(...sorted.map(([,v])=>v.total),1);
+
+  const zoneColors = ['rgba(232,83,58,0.3)','rgba(232,162,48,0.3)','rgba(59,130,246,0.3)','rgba(34,197,94,0.25)','rgba(168,85,247,0.3)','rgba(20,184,166,0.25)','rgba(240,122,58,0.25)','rgba(255,255,255,0.08)'];
+  const zoneTextColors = ['#f09080','#e8be60','#70a8f0','#60d890','#d0b0ff','#5dd4a5','#f0a080','#7a8ea4'];
+  document.getElementById('locationZones').innerHTML = sorted.map(([loc,v],i)=>`
+    <div class="loc-zone" style="background:${zoneColors[i%zoneColors.length]};border-color:${v.total>4?zoneTextColors[i%zoneTextColors.length]:'transparent'}" onclick="filterByLocation('${loc}')">
+      <div class="lz-name" style="color:${zoneTextColors[i%zoneTextColors.length]}">${loc.toUpperCase()}</div>
+      <div class="lz-count" style="color:${zoneTextColors[i%zoneTextColors.length]}">${v.total}</div>
+      <div class="lz-label">incidents</div>
+    </div>`).join('');
+
+  document.getElementById('locBreakdown').innerHTML = sorted.map(([loc,v])=>`
+    <div class="loc-row">
+      <span class="loc-name">${loc}</span>
+      <div style="flex:1;margin:0 8px"><div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.round(v.total/maxTotal*100)}%;background:var(--blue)"></div></div></div>
+      <div class="loc-badges">
+        ${v.lti?`<span class="loc-badge" style="background:rgba(232,83,58,0.2);color:#f09080">LTI:${v.lti}</span>`:''}
+        ${v.nlti?`<span class="loc-badge" style="background:rgba(240,122,58,0.2);color:#f0a080">NLTI:${v.nlti}</span>`:''}
+        ${v.nm?`<span class="loc-badge" style="background:rgba(59,130,246,0.2);color:#70a8f0">NM:${v.nm}</span>`:''}
+        ${v.pd?`<span class="loc-badge" style="background:rgba(168,85,247,0.2);color:#d0b0ff">PD:${v.pd}</span>`:''}
+        <span class="loc-badge" style="background:var(--bg4);color:var(--text2)">${v.total}</span>
+      </div>
+    </div>`).join('');
+
+  makeChart('locChart',{type:'bar',data:{labels:sorted.map(([l])=>l),datasets:[
+    {label:'LTI',data:sorted.map(([,v])=>v.lti),backgroundColor:'#e8533a',borderRadius:2},
+    {label:'NLTI',data:sorted.map(([,v])=>v.nlti),backgroundColor:'#f07a3a',borderRadius:2},
+    {label:'Near miss',data:sorted.map(([,v])=>v.nm),backgroundColor:'#3b82f6',borderRadius:2},
+    {label:'Property dmg',data:sorted.map(([,v])=>v.pd),backgroundColor:'#a855f7',borderRadius:2},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#7a8ea4',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{mode:'index',intersect:false,backgroundColor:'#0e1319',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dce6f0',bodyColor:'#7a8ea4'}},scales:{x:{...baseScales.x,stacked:true},y:{...baseScales.y,stacked:true}}}});
+}
+
+function filterByLocation(loc) {
+  document.getElementById('locInput').value = loc;
+  searchLocation();
+}
+
+function searchLocation() {
+  const query = document.getElementById('locInput').value.toLowerCase().trim();
+  if(!query) { renderLocationCharts(); return; }
+  const keyword = query;
+  const matched = filteredData.filter(d=>d.location.toLowerCase().includes(keyword)||d.desc.toLowerCase().includes(keyword));
+  const zones = document.querySelectorAll('.loc-zone');
+  zones.forEach(z=>z.classList.toggle('active', z.querySelector('.lz-name').textContent.toLowerCase().includes(keyword)));
+  const el = document.getElementById('locBreakdown');
+  if(matched.length===0) { el.innerHTML='<div style="color:var(--text2);font-size:12px;padding:12px">No incidents matched that location.</div>'; return; }
+  const by = {};
+  matched.forEach(d=>{
+    if(!by[d.location]) by[d.location]={lti:0,nlti:0,nm:0,pd:0,rcs:{},total:0};
+    if(d.nature==='PI-LTA') by[d.location].lti++;
+    else if(d.nature==='PI-NLTA') by[d.location].nlti++;
+    else if(d.category==='Near Miss') by[d.location].nm++;
+    else if(d.category==='Property Damage') by[d.location].pd++;
+    by[d.location].rcs[d.rootCause]=(by[d.location].rcs[d.rootCause]||0)+1;
+    by[d.location].total++;
+  });
+  el.innerHTML = '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">Filtered to: <b style="color:var(--accent)">'+query+'</b> — '+matched.length+' incidents</div>'+Object.entries(by).sort((a,b)=>b[1].total-a[1].total).map(([loc,v])=>`
+    <div class="loc-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px;width:100%">
+        <span class="loc-name" style="font-weight:600">${loc}</span>
+        <div class="loc-badges">
+          ${v.lti?`<span class="loc-badge" style="background:rgba(232,83,58,0.2);color:#f09080">LTI:${v.lti}</span>`:''}
+          ${v.nlti?`<span class="loc-badge" style="background:rgba(240,122,58,0.2);color:#f0a080">NLTI:${v.nlti}</span>`:''}
+          ${v.nm?`<span class="loc-badge" style="background:rgba(59,130,246,0.2);color:#70a8f0">NM:${v.nm}</span>`:''}
+          ${v.pd?`<span class="loc-badge" style="background:rgba(168,85,247,0.2);color:#d0b0ff">PD:${v.pd}</span>`:''}
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text2)">Top cause: ${Object.entries(v.rcs).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—'} (${Object.entries(v.rcs).sort((a,b)=>b[1]-a[1])[0]?.[1]||0})</div>
+    </div>`).join('');
+}
+
+function renderMachineCharts() {
+  const mData = {};
+  MACHINES.forEach(m=>mData[m]={lti:0,nlti:0,nm:0,pd:0});
+  filteredData.forEach(d=>{
+    if(!mData[d.machine]) mData[d.machine]={lti:0,nlti:0,nm:0,pd:0};
+    if(d.nature==='PI-LTA') mData[d.machine].lti++;
+    else if(d.nature==='PI-NLTA') mData[d.machine].nlti++;
+    else if(d.category==='Near Miss') mData[d.machine].nm++;
+    else if(d.category==='Property Damage') mData[d.machine].pd++;
+  });
+  const sorted = Object.entries(mData).map(([m,v])=>({m,total:v.lti+v.nlti+v.nm+v.pd,...v})).sort((a,b)=>b.total-a.total);
+  const maxT = Math.max(...sorted.map(r=>r.total),1);
+  const riskLevel = t=>t>=8?['High','rgba(232,83,58,0.2)','#f09080']:t>=4?['Med','rgba(232,162,48,0.2)','#e8be60']:['Low','rgba(34,197,94,0.15)','#60d890'];
+  document.getElementById('machineTableBody').innerHTML = sorted.map(r=>{
+    const [rl,rbg,rtc]=riskLevel(r.total);
+    return `<tr>
+      <td style="font-weight:500">${r.m}</td>
+      <td style="color:var(--text2)">${r.m.includes('HD785')||r.m.includes('CAT')||r.m.includes('Liebherr')||r.m.includes('Terex')?'Haul truck':r.m.includes('PC5500')?'Excavator':'Support'}</td>
+      <td><span class="sev-pill" style="${r.lti?'background:rgba(232,83,58,0.2);color:#f09080':'color:var(--text3)'}">${r.lti||'—'}</span></td>
+      <td><span class="sev-pill" style="${r.nlti?'background:rgba(240,122,58,0.2);color:#f0a080':'color:var(--text3)'}">${r.nlti||'—'}</span></td>
+      <td><span class="sev-pill" style="${r.nm?'background:rgba(59,130,246,0.2);color:#70a8f0':'color:var(--text3)'}">${r.nm||'—'}</span></td>
+      <td><span class="sev-pill" style="${r.pd?'background:rgba(168,85,247,0.2);color:#d0b0ff':'color:var(--text3)'}">${r.pd||'—'}</span></td>
+      <td style="font-weight:600">${r.total}</td>
+      <td><span class="sev-pill" style="background:${rbg};color:${rtc}">${rl}</span></td>
+      <td class="bar-cell"><div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.round(r.total/maxT*100)}%;background:var(--blue)"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  makeChart('machineChart',{type:'bar',data:{labels:sorted.map(r=>r.m.replace('Komatsu ','').replace('Liebherr ','')),datasets:[
+    {label:'LTI',data:sorted.map(r=>r.lti),backgroundColor:'#e8533a',borderRadius:2},
+    {label:'NLTI',data:sorted.map(r=>r.nlti),backgroundColor:'#f07a3a',borderRadius:2},
+    {label:'Near miss',data:sorted.map(r=>r.nm),backgroundColor:'#3b82f6',borderRadius:2},
+    {label:'Property dmg',data:sorted.map(r=>r.pd),backgroundColor:'#a855f7',borderRadius:2},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#7a8ea4',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{mode:'index',intersect:false,backgroundColor:'#0e1319',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dce6f0',bodyColor:'#7a8ea4'}},scales:{x:{...baseScales.x,stacked:true},y:{...baseScales.y,stacked:true}}}});
+
+  makeChart('machineRadar',{type:'radar',data:{labels:['Collision','Slip/Fall','Mech Fail','Overload','Visibility','Fatigue'],datasets:[
+    {label:'HD785-7',data:HEATMAP_DATA['Komatsu HD785-7'],borderColor:'#e8533a',backgroundColor:'rgba(232,83,58,0.15)',pointRadius:3},
+    {label:'CAT 785',data:HEATMAP_DATA['CAT 785'],borderColor:'#e8a230',backgroundColor:'rgba(232,162,48,0.1)',pointRadius:3},
+    {label:'Liebherr T284',data:HEATMAP_DATA['Liebherr T284'],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',pointRadius:3},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#7a8ea4',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{backgroundColor:'#0e1319',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dce6f0',bodyColor:'#7a8ea4'}},scales:{r:{ticks:{color:TICK_COLOR,font:{size:9},backdropColor:'transparent',stepSize:2},grid:{color:GRID_COLOR},angleLines:{color:GRID_COLOR},pointLabels:{color:TICK_COLOR,font:{size:10}}}}}});
+}
+
+function renderComparisonCharts() {
+  const viewType = document.getElementById('compViewType').value;
+  const cat = document.getElementById('compCategory').value;
+  const YEARS = [2022,2023,2024];
+  const YEAR_COLORS = ['#3b82f6','#e8a230','#e8533a'];
+
+  if(viewType==='category') {
+    const cats = cat==='all'?['PI-LTA','PI-NLTA','Near Miss','Property Damage']:
+                 ['PI-LTA','PI-NLTA','PI-FAT'].includes(cat)?[cat]:[cat];
+    const catLabels = cats.map(c=>c==='PI-LTA'?'LTI':c==='PI-NLTA'?'NLTI':c);
+    const datasets = YEARS.map((y,i)=>({
+      label:String(y),
+      data:cats.map(c=>{
+        const d = filteredData.filter(dd=>dd.year===y);
+        return ['PI-LTA','PI-NLTA','PI-FAT'].includes(c)?d.filter(dd=>dd.nature===c).length:d.filter(dd=>dd.category===c).length;
+      }),
+      backgroundColor:YEAR_COLORS[i],borderRadius:4,
+    }));
+    makeChart('compChart',{type:'bar',data:{labels:catLabels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#7a8ea4',font:{size:11},boxWidth:10,boxHeight:10}},tooltip:{mode:'index',intersect:false,backgroundColor:'#0e1319',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dce6f0',bodyColor:'#7a8ea4'}},scales:{x:{...baseScales.x},y:{...baseScales.y}}}});
+    document.getElementById('compLegend').innerHTML=YEARS.map((y,i)=>`<div class="leg-item"><div class="leg-dot" style="background:${YEAR_COLORS[i]}"></div>${y}</div>`).join('');
+  } else {
+    const datasets = YEARS.map((y,i)=>{
+      const data = MONTHS.map((_,mi)=>{
+        const d = filteredData.filter(dd=>dd.year===y&&dd.month===mi+1);
+        if(cat==='all') return d.length;
+        if(['PI-LTA','PI-NLTA','PI-FAT'].includes(cat)) return d.filter(dd=>dd.nature===cat).length;
+        return d.filter(dd=>dd.category===cat).length;
+      });
+      return {label:String(y),data,borderColor:YEAR_COLORS[i],backgroundColor:YEAR_COLORS[i].replace(')',',0.1)').replace('rgb','rgba'),tension:0.3,fill:false,pointRadius:4,borderWidth:2};
+    });
+    makeChart('compChart',{type:'line',data:{labels:MONTHS,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#7a8ea4',font:{size:11},boxWidth:10,boxHeight:10}},tooltip:{mode:'index',intersect:false,backgroundColor:'#0e1319',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dce6f0',bodyColor:'#7a8ea4'}},scales:baseScales}});
+    document.getElementById('compLegend').innerHTML=YEARS.map((y,i)=>`<div class="leg-item"><div class="leg-dot" style="background:${YEAR_COLORS[i]}"></div>${y}</div>`).join('');
+  }
+
+  const currentYear = parseInt(document.getElementById('filterYear').value)||2024;
+  const labM=MONTHS, ltiM=MONTHS.map((_,i)=>filteredData.filter(d=>d.year===currentYear&&d.month===i+1&&d.nature==='PI-LTA').length);
+  const nltiM=MONTHS.map((_,i)=>filteredData.filter(d=>d.year===currentYear&&d.month===i+1&&d.nature==='PI-NLTA').length);
+  const nmM=MONTHS.map((_,i)=>filteredData.filter(d=>d.year===currentYear&&d.month===i+1&&d.category==='Near Miss').length);
+  const pdM=MONTHS.map((_,i)=>filteredData.filter(d=>d.year===currentYear&&d.month===i+1&&d.category==='Property Damage').length);
+  makeChart('monthlyChart',{type:'bar',data:{labels:labM,datasets:[
+    {label:'LTI',data:ltiM,backgroundColor:'#e8533a',borderRadius:3},
+    {label:'NLTI',data:nltiM,backgroundColor:'#f07a3a',borderRadius:3},
+    {label:'Near miss',data:nmM,backgroundColor:'#3b82f6',borderRadius:3},
+    {label:'Prop dmg',data:pdM,backgroundColor:'#a855f7',borderRadius:3},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'#0e1319',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dce6f0',bodyColor:'#7a8ea4'}},scales:{x:{...baseScales.x,stacked:true},y:{...baseScales.y,stacked:true}}}});
+
+  document.getElementById('yearlyTable').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr>${['Year','LTI','NLTI','Near Miss','Prop Dmg','Total','LTIFR'].map(h=>`<th style="text-align:left;padding:6px 4px;font-size:10px;color:var(--text2);border-bottom:1px solid var(--border)">${h}</th>`).join('')}</tr></thead>
+      <tbody>${YEARS.map(y=>{
+        const yd=filteredData.filter(d=>d.year===y);
+        const l=yd.filter(d=>d.nature==='PI-LTA').length,n=yd.filter(d=>d.nature==='PI-NLTA').length,nm=yd.filter(d=>d.category==='Near Miss').length,pd=yd.filter(d=>d.category==='Property Damage').length;
+        const ltifr=l?((l/EXPOSURE_HRS_PER_YEAR)*1e6).toFixed(2):'0.00';
+        return `<tr>${[y,l,n,nm,pd,l+n+nm+pd,ltifr].map((v,i)=>`<td style="padding:7px 4px;border-bottom:1px solid var(--border);${i===0?'font-weight:600':''}${i===6?'color:var(--amber)':''}${i===1&&v>0?'color:#e8533a':''}">${v}</td>`).join('')}</tr>`;
+      }).join('')}</tbody>
+    </table>`;
+}
+
+// =================== ROOT CAUSE ANALYZER ===================
+function analyzeRC() {
+  const txt = document.getElementById('rcInput').value.trim().toLowerCase();
+  if(!txt) return;
+  let match = null;
+  if(/(procedure|checklist|jsa|safe work|skip|not follow|bypass|shortcut|isolation|isolat|loto)/.test(txt)) match=ROOT_CAUSES[0];
+  else if(/(blind|spot|reverse|aware|lookout|signal|spotter|visibility|observe|approach|swing|path|zone)/.test(txt)) match=ROOT_CAUSES[1];
+  else if(/(fault|defect|brake|tyre|tire|mechanical|failure|equipment|machine|malfunction|burst|hose|lamp|light)/.test(txt)) match=ROOT_CAUSES[2];
+  else if(/(supervisor|unsupervised|alone|no supervisor|management|oversight|unguided|unmarked|pothole|berm|insufficient)/.test(txt)) match=ROOT_CAUSES[3];
+  else if(/(fatigue|tired|sleepy|shift|long hours|overtime|roster|heat|exhaustion|momentarily|fell asleep)/.test(txt)) match=ROOT_CAUSES[4];
+  else if(/(dust|dark|light|rain|muddy|visibility|wet|slippery|environmental|night|low.light|wind)/.test(txt)) match=ROOT_CAUSES[5];
+  const box = document.getElementById('rcResult');
+  box.style.display='block';
+  if(match) {
+    const count = filteredData.filter(d=>d.rootCause===match.name).length;
+    box.innerHTML=`<strong>Root cause: ${match.name}</strong> — ${count} prior incidents in filtered period<br><br><b style="color:var(--amber)">Recommended action:</b> ${match.action}`;
+  } else {
+    box.innerHTML='<strong>Description logged.</strong> Could not auto-classify. Escalate to HSE for manual categorization.';
+  }
+}
+
+function logIncident() {
+  const desc = document.getElementById('rcInput').value.trim();
+  const loc = document.getElementById('rcLocation').value.trim();
+  const sev = document.getElementById('rcSeverity').value;
+  if(!desc) return;
+  analyzeRC();
+  const box = document.getElementById('rcResult');
+  box.innerHTML += `<br><br><b style="color:var(--green)">✓ Incident logged</b> — Location: ${loc||'(not specified)'} | Severity: ${sev||'(not specified)'} | Time: ${new Date().toLocaleString()}`;
+}
+
+// =================== EXPORT ===================
+function exportCSV() {
+  const headers = ['ID','Date','Year','Month','Category','Nature','Location','Machine','Root Cause','Cost','Description'];
+  const rows = filteredData.map(d=>[d.id,d.date,d.year,d.month,d.category,d.nature||'—',d.location,d.machine,d.rootCause,d.cost,`"${d.desc.replace(/"/g,'""')}"`]);
+  const csv = [headers,...rows].map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='safety-dashboard-export.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// =================== TABS ===================
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['overview','comparison','rootcause','location','machine'][i]===id));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id===`tab-${id}`));
+  if(id==='comparison') renderComparisonCharts();
+  if(id==='rootcause') renderRCCharts();
+  if(id==='location') renderLocationCharts();
+  if(id==='machine') renderMachineCharts();
+}
+
+// =================== INIT ===================
+// =================== GOOGLE SHEETS CONFIG ===================
+const CONFIG_KEY = 'safetyiq_config';
+let gsConfig = { scriptUrl: '', sheetId: '' };
+let sessionEntries = [];
+
+function loadConfig() {
+  try {
+    const saved = localStorage.getItem(CONFIG_KEY);
+    if (saved) {
+      gsConfig = JSON.parse(saved);
+      if (gsConfig.scriptUrl) {
+        document.getElementById('cfgScriptUrl2').value = gsConfig.scriptUrl;
+        document.getElementById('cfgSheetId2').value = gsConfig.sheetId;
+        updateDataSourceBadge(true);
+      }
+    }
+  } catch(e) {}
+}
+
+function saveConfig() {
+  const url1 = document.getElementById('cfgScriptUrl')?.value.trim();
+  const id1  = document.getElementById('cfgSheetId')?.value.trim();
+  const url2 = document.getElementById('cfgScriptUrl2')?.value.trim();
+  const id2  = document.getElementById('cfgSheetId2')?.value.trim();
+  const url  = url1 || url2;
+  const id   = id1  || id2;
+  if (!url) { showConfigStatus('Please enter the Apps Script URL.', false); return; }
+  gsConfig = { scriptUrl: url, sheetId: id };
+  try { localStorage.setItem(CONFIG_KEY, JSON.stringify(gsConfig)); } catch(e) {}
+  // Sync both inputs
+  if (document.getElementById('cfgScriptUrl2')) document.getElementById('cfgScriptUrl2').value = url;
+  if (document.getElementById('cfgSheetId2'))   document.getElementById('cfgSheetId2').value   = id;
+  showConfigStatus('Testing connection…', null);
+  // Test by fetching
+  fetch(url + '?action=ping')
+    .then(r => r.json())
+    .then(d => {
+      if (d.status === 'ok') {
+        showConfigStatus('✓ Connected successfully! Ready to log incidents.', true);
+        updateDataSourceBadge(true);
+      } else {
+        showConfigStatus('⚠ Connected but unexpected response. Check script deployment.', false);
+      }
+    })
+    .catch(() => {
+      showConfigStatus('✓ Config saved. (Could not ping — CORS is normal for Apps Script. Try submitting an entry to verify.)', true);
+      updateDataSourceBadge(true);
+    });
+}
+
+function showConfigStatus(msg, ok) {
+  const el1 = document.getElementById('configStatus');
+  const el2 = document.getElementById('configStatus2');
+  const color = ok === true ? 'var(--green)' : ok === false ? 'var(--red)' : 'var(--text2)';
+  const html = `<span style="color:${color}">${msg}</span>`;
+  if (el1) el1.innerHTML = html;
+  if (el2) el2.innerHTML = html;
+}
+
+function updateDataSourceBadge(connected) {
+  const dot = document.getElementById('dsDot');
+  const lbl = document.getElementById('dsLabel');
+  if (!dot || !lbl) return;
+  if (connected) {
+    dot.classList.add('live');
+    lbl.textContent = 'Google Sheets connected';
+  } else {
+    dot.classList.remove('live');
+    lbl.textContent = 'Local only';
+  }
+}
+
+// =================== FORM LOGIC ===================
+function toggleNatureField() {
+  const cat = document.getElementById('fCategory').value;
+  const grp = document.getElementById('fNatureGroup');
+  if (grp) grp.style.display = cat === 'Personnel Injury' ? '' : 'none';
+}
+
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.id === 'fLocation') {
+    const og = document.getElementById('fLocationOtherGroup');
+    if (og) og.style.display = e.target.value === 'Other' ? '' : 'none';
+  }
+});
+
+function clearForm() {
+  ['fDate','fTime','fCost','fDesc','fActions','fReporter','fLocationOther'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['fCategory','fNature','fLocation','fMachine','fRootCause'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const ng = document.getElementById('fNatureGroup');
+  if (ng) ng.style.display = 'none';
+  const og = document.getElementById('fLocationOtherGroup');
+  if (og) og.style.display = 'none';
+  hideFormStatus();
+  // Set today's date
+  const fd = document.getElementById('fDate');
+  if (fd) fd.value = new Date().toISOString().split('T')[0];
+}
+
+function hideFormStatus() {
+  const s = document.getElementById('formStatus');
+  if (s) { s.className = 'form-status'; s.textContent = ''; }
+}
+
+function setFormStatus(msg, type) {
+  const s = document.getElementById('formStatus');
+  if (!s) return;
+  s.className = 'form-status ' + type;
+  s.innerHTML = msg;
+}
+
+function validateForm() {
+  const required = [
+    { id: 'fDate',     label: 'Date' },
+    { id: 'fCategory', label: 'Category' },
+    { id: 'fLocation', label: 'Location' },
+    { id: 'fMachine',  label: 'Machine' },
+    { id: 'fRootCause',label: 'Root Cause' },
+    { id: 'fDesc',     label: 'Description' },
+  ];
+  const cat = document.getElementById('fCategory')?.value;
+  if (cat === 'Personnel Injury') {
+    required.push({ id: 'fNature', label: 'Nature of Injury' });
+  }
+  for (const f of required) {
+    const el = document.getElementById(f.id);
+    if (!el || !el.value.trim()) {
+      setFormStatus(`⚠ Please fill in: <strong>${f.label}</strong>`, 'error');
+      el?.focus();
+      return false;
+    }
+  }
+  return true;
+}
+
+function buildEntryObject() {
+  const dateVal = document.getElementById('fDate').value;
+  const [y, m] = dateVal.split('-').map(Number);
+  const locRaw = document.getElementById('fLocation').value;
+  const loc = locRaw === 'Other'
+    ? (document.getElementById('fLocationOther').value.trim() || 'Other')
+    : locRaw;
+  const cat = document.getElementById('fCategory').value;
+  const nature = cat === 'Personnel Injury' ? document.getElementById('fNature').value : '';
+  const maxId = RAW_DATA.length > 0 ? Math.max(...RAW_DATA.map(d => d.id)) : 0;
+  return {
+    id:        maxId + sessionEntries.length + 1,
+    date:      dateVal,
+    year:      y,
+    month:     m,
+    category:  cat,
+    nature:    nature,
+    location:  loc,
+    machine:   document.getElementById('fMachine').value,
+    rootCause: document.getElementById('fRootCause').value,
+    cost:      parseFloat(document.getElementById('fCost').value) || 0,
+    desc:      document.getElementById('fDesc').value.trim(),
+    actions:   document.getElementById('fActions').value.trim(),
+    reporter:  document.getElementById('fReporter').value.trim(),
+    time:      document.getElementById('fTime').value,
+    loggedAt:  new Date().toISOString(),
+  };
+}
+
+async function submitIncident() {
+  if (!validateForm()) return;
+  const entry = buildEntryObject();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  setFormStatus('Submitting…', 'loading');
+
+  let sheetSuccess = false;
+  if (gsConfig.scriptUrl) {
+    try {
+      const payload = {
+        action: 'addIncident',
+        data: {
+          id:        entry.id,
+          date:      entry.date,
+          time:      entry.time,
+          year:      entry.year,
+          month:     entry.month,
+          category:  entry.category,
+          nature:    entry.nature,
+          location:  entry.location,
+          machine:   entry.machine,
+          rootCause: entry.rootCause,
+          cost:      entry.cost,
+          desc:      entry.desc,
+          actions:   entry.actions,
+          reporter:  entry.reporter,
+          loggedAt:  entry.loggedAt,
+        }
+      };
+      const resp = await fetch(gsConfig.scriptUrl, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const result = await resp.json();
+      sheetSuccess = result.status === 'ok';
+    } catch (err) {
+      console.warn('Sheet write failed:', err);
+    }
+  }
+
+  // Always add to local RAW_DATA for immediate dashboard update
+  RAW_DATA.push(entry);
+  sessionEntries.push(entry);
+  applyFilters();
+  addRecentEntry(entry);
+  updateRecentCount();
+
+  if (gsConfig.scriptUrl) {
+    if (sheetSuccess) {
+      setFormStatus('✓ Incident logged and saved to Google Sheets.', 'success');
+    } else {
+      setFormStatus('⚠ Saved locally — could not reach Google Sheets. Check your connection URL in the config below.', 'error');
+    }
+  } else {
+    setFormStatus('✓ Incident added to this session. <strong>Connect Google Sheets</strong> below to persist data.', 'success');
+  }
+
+  btn.disabled = false;
+  clearForm();
+}
+
+function addRecentEntry(entry) {
+  const container = document.getElementById('recentEntries');
+  if (!container) return;
+  // Clear empty state message
+  if (container.querySelector('div[style]')) container.innerHTML = '';
+  const catColors = {
+    'Personnel Injury': { bg: 'rgba(232,83,58,0.15)', color: '#f09080' },
+    'Near Miss':        { bg: 'rgba(59,130,246,0.15)', color: '#70a8f0' },
+    'Property Damage':  { bg: 'rgba(168,85,247,0.15)', color: '#d0b0ff' },
+  };
+  const cc = catColors[entry.category] || { bg: 'var(--bg4)', color: 'var(--text2)' };
+  const label = entry.nature || entry.category;
+  const row = document.createElement('div');
+  row.className = 'entry-row';
+  row.innerHTML = `
+    <span class="entry-date">${entry.date}</span>
+    <span class="entry-badge" style="background:${cc.bg};color:${cc.color}">${label}</span>
+    <span class="entry-desc" title="${entry.desc}">${entry.desc}</span>
+    <span class="entry-loc">${entry.location}</span>`;
+  container.insertBefore(row, container.firstChild);
+}
+
+function updateRecentCount() {
+  const el = document.getElementById('recentCount');
+  if (el) el.textContent = sessionEntries.length + ' entr' + (sessionEntries.length === 1 ? 'y' : 'ies');
+}
+
+// =================== PATCH switchTab TO INCLUDE NEW TAB ===================
+const _origSwitchTab = switchTab;
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) =>
+    b.classList.toggle('active', ['overview','comparison','rootcause','location','machine','logincident'][i] === id)
+  );
+  document.querySelectorAll('.tab-panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'tab-' + id)
+  );
+  if (id === 'comparison') renderComparisonCharts();
+  if (id === 'rootcause')  renderRCCharts();
+  if (id === 'location')   renderLocationCharts();
+  if (id === 'machine')    renderMachineCharts();
+}
+
+// =================== INIT ===================
+window.addEventListener('DOMContentLoaded', ()=>{
+  updateCbCounts();
+  toggleNatureSection();
+  renderHeatmap();
+  applyFilters();
+  renderTrendChart();
+  renderSevChart();
+  renderRCCharts();
+  renderLocationCharts();
+  renderMachineCharts();
+  renderComparisonCharts();
+  loadConfig();
+  clearForm(); // sets today's date in the log form
+});
+</script>
+</body>
+</html>
